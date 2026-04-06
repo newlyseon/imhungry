@@ -1,0 +1,173 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Slate & Rose system */
+    --background: 210 14% 96%;
+    --foreground: 0 0% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    --primary: 229 84% 5%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 16% 47%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 16% 92%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 215 16% 47%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 16% 88%;
+    --input: 215 16% 88%;
+    --ring: 229 84% 5%;
+
+    --radius: 1rem;
+
+    /* Fasting mode colors — translucent overlay system */
+    --fasting-overlay: 0 0% 0% / 0.55;
+    --fasting-overlay-heavy: 0 0% 0% / 0.7;
+    --fasting-overlay-card: 0 0% 0% / 0.45;
+    --fasting-text: 0 0% 100%;
+    --fasting-text-muted: 0 0% 100% / 0.6;
+    --fasting-accent: 158 64% 52%;
+    --fasting-accent-glow: 158 64% 65%;
+    --fasting-progress: 158 64% 52%;
+    --fasting-ring: 0 0% 100% / 0.15;
+
+    /* Eating mode colors */
+    --eating-bg: 145 30% 96%;
+    --eating-bg-secondary: 145 25% 92%;
+    --eating-text: 150 30% 10%;
+    --eating-text-muted: 150 15% 45%;
+    --eating-accent: 145 55% 42%;
+    --eating-accent-light: 145 50% 55%;
+    --eating-warm: 25 90% 55%;
+
+    /* Result/celebration colors */
+    --celebration-gold: 40 90% 55%;
+    --celebration-gold-light: 40 85% 70%;
+    --celebration-bg: 210 14% 96%;
+
+    /* Shadows */
+    --shadow-card: 0 4px 24px -4px hsl(215 20% 10% / 0.06);
+    --shadow-elevated: 0 8px 40px -8px hsl(215 20% 10% / 0.10);
+    --shadow-glow-slate: 0 0 40px -8px hsl(229 84% 5% / 0.25);
+    --shadow-glow-green: 0 0 40px -8px hsl(145 55% 42% / 0.3);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 229 84% 5%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 215 16% 95%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 215 16% 91%;
+    --sidebar-ring: 229 84% 5%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .font-mono-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.02em;
+  }
+
+  .bg-fasting {
+    background-color: hsl(var(--fasting-overlay));
+  }
+
+  .bg-fasting-secondary {
+    background-color: hsl(var(--fasting-overlay-card));
+  }
+
+  .bg-fasting-heavy {
+    background-color: hsl(var(--fasting-overlay-heavy));
+  }
+
+  .text-fasting {
+    color: hsl(var(--fasting-text));
+  }
+
+  .text-fasting-muted {
+    color: hsl(var(--fasting-text-muted));
+  }
+
+  .text-fasting-accent {
+    color: hsl(var(--fasting-accent));
+  }
+
+  .bg-eating {
+    background-color: hsl(var(--eating-bg));
+  }
+
+  .bg-eating-secondary {
+    background-color: hsl(var(--eating-bg-secondary));
+  }
+
+  .text-eating {
+    color: hsl(var(--eating-text));
+  }
+
+  .text-eating-muted {
+    color: hsl(var(--eating-text-muted));
+  }
+
+  .text-eating-accent {
+    color: hsl(var(--eating-accent));
+  }
+
+  .bg-celebration {
+    background-color: hsl(var(--celebration-bg));
+  }
+
+  .text-gold {
+    color: hsl(var(--celebration-gold));
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-glow-slate {
+    box-shadow: var(--shadow-glow-slate);
+  }
+
+  .shadow-glow-green {
+    box-shadow: var(--shadow-glow-green);
+  }
+}
