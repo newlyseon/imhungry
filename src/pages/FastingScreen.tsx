@@ -1,11 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Drawer from '@mui/material/Drawer';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import LinearProgress from '@mui/material/LinearProgress';
 import { CircleProgress } from '@/components/CircleProgress';
 import { useCountdown, useElapsed } from '@/hooks/useCountdown';
 import { FastingSession, FASTING_STAGES, FastingStage } from '@/hooks/useFastingStore';
 import { formatWallClock, formatTimerDisplay } from '@/lib/formatTime';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 import fastingBg1 from '@/assets/fasting-bg-1.png';
 import fastingBg2 from '@/assets/fasting-bg-2.png';
@@ -84,187 +93,383 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
     setShowNudge(true);
   };
 
+  // Fasting mode colors
+  const fastingText = 'rgba(255,255,255,0.95)';
+  const fastingMuted = 'rgba(255,255,255,0.55)';
+  const fastingAccent = 'hsl(158, 64%, 52%)';
+  const fastingBg = 'rgba(255,255,255,0.08)';
+  const fastingBorder = 'rgba(255,255,255,0.15)';
+  const fastingHeavy = 'rgba(10,20,15,0.92)';
+
   return (
-    <div className="h-screen flex flex-col items-center overflow-hidden relative">
-      {/* Background image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${bgImage})` }}
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
+      {/* Background */}
+      <Box
+        sx={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `url(${bgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
       />
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-fasting" />
+      {/* Dark overlay */}
+      <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.55)' }} />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center w-full h-full px-5 pt-8">
-        <div className="flex-1 w-full overflow-y-auto">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
-            <div className="mb-12">
-              <h1 className="text-2xl font-bold text-fasting">단식 중 🌙</h1>
-              <p className="text-fasting-muted text-sm mt-0.5">
+      <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%', px: 2.5, pt: 4 }}>
+        <Box sx={{ flex: 1, width: '100%', overflowY: 'auto' }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Box sx={{ mb: 6 }}>
+              <Typography variant="h5" fontWeight={700} sx={{ color: fastingText }}>단식 중 🌙</Typography>
+              <Typography variant="body2" sx={{ color: fastingMuted, mt: 0.5 }}>
                 {session.config.type === 'custom' ? `${session.config.fastingHours}:${session.config.eatingHours}` : session.config.type} · {progressPercent}% 완료
-              </p>
-            </div>
+              </Typography>
+            </Box>
           </motion.div>
 
-
           {/* Circle */}
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} className="my-8 flex justify-center">
-            <CircleProgress progress={progress} colorClass="fasting">
-              <span className="text-white mb-1 text-lg font-bold pb-[6px] bg-transparent">
-                {isComplete ? '목표 달성! 🎉' : showElapsed ? '지나간 시간' : '남은시간'}
-              </span>
-              <button
-                onClick={() => setShowElapsed(prev => !prev)}
-                className="text-4xl font-bold text-fasting font-mono-num tracking-tight transition-opacity active:opacity-60"
-              >
-                {isComplete ? '00 : 00 : 00' : showElapsed ? elapsedFormatted : formatted}
-              </button>
-              {!isComplete && (
-                <span className="text-white/80 mt-1.5 text-base pt-[2px] opacity-70">
-                  {showElapsed
-                    ? `${formatWallClock(new Date(session.fastingStartTime))}에 시작했어요`
-                    : `${formatWallClock(new Date(targetTime))}에 식사할 수 있어요`
-                  }
-                </span>
-              )}
-            </CircleProgress>
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+          >
+            <Box sx={{ my: 4, display: 'flex', justifyContent: 'center' }}>
+              <CircleProgress progress={progress} colorClass="fasting">
+                <Typography sx={{ color: 'white', mb: 0.5, fontSize: '1.125rem', fontWeight: 700, bgcolor: 'transparent' }}>
+                  {isComplete ? '목표 달성! 🎉' : showElapsed ? '지나간 시간' : '남은시간'}
+                </Typography>
+                <Box
+                  component="button"
+                  onClick={() => setShowElapsed(prev => !prev)}
+                  sx={{
+                    fontSize: '2.25rem',
+                    fontWeight: 700,
+                    color: fastingAccent,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.02em',
+                    bgcolor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.15s',
+                    '&:active': { opacity: 0.6 },
+                  }}
+                >
+                  {isComplete ? '00 : 00 : 00' : showElapsed ? elapsedFormatted : formatted}
+                </Box>
+                {!isComplete && (
+                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', mt: 0.75, fontSize: '0.875rem' }}>
+                    {showElapsed
+                      ? `${formatWallClock(new Date(session.fastingStartTime))}에 시작했어요`
+                      : `${formatWallClock(new Date(targetTime))}에 식사할 수 있어요`
+                    }
+                  </Typography>
+                )}
+              </CircleProgress>
+            </Box>
           </motion.div>
 
           {/* Stage stepper */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="w-full bg-fasting-secondary backdrop-blur-md p-5 mb-4 rounded-xl border border-fasting-ring">
-            <h3 className="text-white-muted font-semibold mb-4 text-base text-fasting">현재 내 몸의 변화</h3>
-            <div className="flex items-center gap-1 mb-6">
-              {FASTING_STAGES.map((stage, i) => {
-                const elapsedHours = elapsedMs / (1000 * 60 * 60);
-                const stageStart = stage.startHour;
-                const stageEnd = i < FASTING_STAGES.length - 1 ? FASTING_STAGES[i + 1].startHour : session.config.fastingHours;
-                const stageRange = stageEnd - stageStart;
-                const stageFill = stageRange > 0
-                  ? Math.min(Math.max((elapsedHours - stageStart) / stageRange, 0), 1)
-                  : 0;
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <Box
+              sx={{
+                width: '100%',
+                bgcolor: fastingBg,
+                backdropFilter: 'blur(12px)',
+                p: 2.5,
+                mb: 2,
+                borderRadius: 3,
+                border: `1px solid ${fastingBorder}`,
+              }}
+            >
+              <Typography variant="body2" fontWeight={600} sx={{ color: fastingText, mb: 2 }}>현재 내 몸의 변화</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 3 }}>
+                {FASTING_STAGES.map((stage, i) => {
+                  const elapsedHours = elapsedMs / (1000 * 60 * 60);
+                  const stageStart = stage.startHour;
+                  const stageEnd = i < FASTING_STAGES.length - 1 ? FASTING_STAGES[i + 1].startHour : session.config.fastingHours;
+                  const stageRange = stageEnd - stageStart;
+                  const stageFill = stageRange > 0
+                    ? Math.min(Math.max((elapsedHours - stageStart) / stageRange, 0), 1)
+                    : 0;
 
-                return (
-                  <div key={stage.name} className="flex-1 flex flex-col items-center">
-                    <div className="h-2.5 w-full rounded-full mb-2 bg-fasting-ring overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-fasting-accent transition-all duration-1000 ease-linear"
-                        style={{ width: `${stageFill * 100}%` }}
+                  return (
+                    <Box key={stage.name} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={stageFill * 100}
+                        sx={{
+                          width: '100%',
+                          mb: 1,
+                          bgcolor: fastingBorder,
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: fastingAccent,
+                            transition: 'transform 1s linear',
+                          },
+                        }}
                       />
-                    </div>
-                    <span className={`text-xs text-center leading-tight ${stageFill > 0 ? 'text-fasting-accent' : 'text-fasting-muted'}`}>{stage.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {currentStage && (
-              <motion.p key={currentStage.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-fasting text-base text-center">
-                {currentStage.description}
-              </motion.p>
-            )}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          textAlign: 'center',
+                          lineHeight: 1.2,
+                          color: stageFill > 0 ? fastingAccent : fastingMuted,
+                        }}
+                      >
+                        {stage.name}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+              {currentStage && (
+                <motion.div key={currentStage.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <Typography variant="body2" sx={{ color: fastingText, textAlign: 'center' }}>
+                    {currentStage.description}
+                  </Typography>
+                </motion.div>
+              )}
+            </Box>
           </motion.div>
-        </div>
+        </Box>
 
         {/* Bottom actions */}
-        <div className="w-full pb-8 pt-4">
+        <Box sx={{ width: '100%', pb: 4, pt: 2 }}>
           {!showNudge && (
             <>
-              <button onClick={handleEndClick} className="w-full rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-semibold text-base transition-colors py-[16px]">
-                단식 종료
-              </button>
-              <button
-                onClick={() => { const d = new Date(session.fastingStartTime); setEditHour(d.getHours().toString().padStart(2, '0')); setEditMinute(d.getMinutes().toString().padStart(2, '0')); setShowEditTime(true); }}
-                className="w-full mt-2 py-2 text-fasting-muted hover:text-white transition-colors text-sm"
+              <Box sx={{ display: 'flex', gap: 1.5 }}>
+                <Button
+                  variant="outlined"
+                  onClick={onResetToSetup}
+                  size="large"
+                  sx={{
+                    borderRadius: 3,
+                    border: `1px solid ${fastingBorder}`,
+                    color: fastingMuted,
+                    bgcolor: 'transparent',
+                    fontWeight: 600,
+                    flexShrink: 0,
+                    px: 3,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', border: `1px solid ${fastingBorder}` },
+                  }}
+                >
+                  취소
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={handleEndClick}
+                  size="large"
+                  sx={{
+                    borderRadius: 3,
+                    border: `1px solid ${fastingBorder}`,
+                    color: 'white',
+                    bgcolor: fastingBg,
+                    backdropFilter: 'blur(12px)',
+                    fontWeight: 600,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', border: `1px solid ${fastingBorder}` },
+                  }}
+                >
+                  단식 종료
+                </Button>
+              </Box>
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => {
+                  const d = new Date(session.fastingStartTime);
+                  setEditHour(d.getHours().toString().padStart(2, '0'));
+                  setEditMinute(d.getMinutes().toString().padStart(2, '0'));
+                  setShowEditTime(true);
+                }}
+                sx={{ mt: 1, color: fastingMuted, fontSize: '0.875rem', '&:hover': { color: 'white', bgcolor: 'transparent' } }}
               >
                 시작 시간 수정하기
-              </button>
+              </Button>
             </>
           )}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      {/* Edit start time sheet */}
-      <Sheet open={showEditTime} onOpenChange={setShowEditTime}>
-        <SheetContent side="bottom" className="rounded-t-3xl px-5 pb-8 pt-6 bg-fasting-heavy backdrop-blur-xl border-0">
-          <SheetHeader className="text-left mb-4">
-            <SheetTitle className="text-lg font-bold text-fasting">시작 시간 수정</SheetTitle>
-            <SheetDescription className="text-sm text-fasting-muted">단식 시작시간은 현재시간 이전으로만 설정할 수 있어요.</SheetDescription>
-          </SheetHeader>
-          <div className="gap-2 mb-4 pb-[2px] pt-[2px] text-center flex items-center justify-center py-0">
-            <button
-              onClick={() => setEditDay('today')}
-              className={`px-8 py-2 rounded-xl text-sm font-semibold transition-all ${editDay === 'today' ? 'bg-white/20 text-white border border-white/30' : 'border border-fasting-ring text-fasting-muted hover:text-white'}`}
+      {/* Edit start time drawer */}
+      <Drawer
+        anchor="bottom"
+        open={showEditTime}
+        onClose={() => setShowEditTime(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '24px 24px 0 0',
+            px: 2.5,
+            pb: 4,
+            pt: 3,
+            bgcolor: fastingHeavy,
+            backdropFilter: 'blur(24px)',
+          },
+        }}
+      >
+        <Typography variant="h6" fontWeight={700} sx={{ color: fastingText, mb: 0.5 }}>시작 시간 수정</Typography>
+        <Typography variant="body2" sx={{ color: fastingMuted, mb: 2.5 }}>
+          단식 시작시간은 현재시간 이전으로만 설정할 수 있어요.
+        </Typography>
+
+        <ToggleButtonGroup
+          exclusive
+          value={editDay}
+          onChange={(_, v) => v && setEditDay(v)}
+          fullWidth
+          sx={{ mb: 2 }}
+        >
+          {['today', 'yesterday'].map((val) => (
+            <ToggleButton
+              key={val}
+              value={val}
+              sx={{
+                flex: 1, py: 1.5,
+                color: fastingMuted,
+                border: `1px solid ${fastingBorder}`,
+                '&.Mui-selected': {
+                  bgcolor: fastingBg,
+                  color: fastingText,
+                  border: `1px solid rgba(255,255,255,0.3)`,
+                },
+              }}
             >
-              오늘
-            </button>
-            <button
-              onClick={() => setEditDay('yesterday')}
-              className={`px-8 py-2 rounded-xl text-sm font-semibold transition-all ${editDay === 'yesterday' ? 'bg-white/20 text-white border border-white/30' : 'border border-fasting-ring text-fasting-muted hover:text-white'}`}
+              {val === 'today' ? '오늘' : '어제'}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2, py: 1 }}>
+          <FormControl>
+            <Select
+              value={isHourValid ? editHour : ''}
+              onChange={(e) => setEditHour(e.target.value)}
+              displayEmpty
+              sx={{
+                width: 96, height: 56,
+                textAlign: 'center',
+                fontWeight: 700,
+                fontSize: '1.25rem',
+                color: fastingText,
+                bgcolor: fastingBg,
+                '.MuiOutlinedInput-notchedOutline': { borderColor: fastingBorder },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+                '.MuiSvgIcon-root': { color: fastingMuted },
+              }}
+              renderValue={(v) => v || '--'}
             >
-              어제
-            </button>
-          </div>
+              {availableHours.map(i => {
+                const label = i.toString().padStart(2, '0');
+                return <MenuItem key={i} value={label}>{label}시</MenuItem>;
+              })}
+            </Select>
+          </FormControl>
+          <Typography variant="h5" fontWeight={700} sx={{ color: fastingText }}>:</Typography>
+          <FormControl>
+            <Select
+              value={isMinuteValid ? editMinute : ''}
+              onChange={(e) => setEditMinute(e.target.value)}
+              displayEmpty
+              sx={{
+                width: 96, height: 56,
+                textAlign: 'center',
+                fontWeight: 700,
+                fontSize: '1.25rem',
+                color: fastingText,
+                bgcolor: fastingBg,
+                '.MuiOutlinedInput-notchedOutline': { borderColor: fastingBorder },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+                '.MuiSvgIcon-root': { color: fastingMuted },
+              }}
+              renderValue={(v) => v || '--'}
+            >
+              {availableMinutes.map(m => {
+                const val = m.toString().padStart(2, '0');
+                return <MenuItem key={m} value={val}>{val}분</MenuItem>;
+              })}
+            </Select>
+          </FormControl>
+        </Box>
 
-          <div className="flex flex-col items-center gap-2 my-2 pb-[16px] pt-[8px]">
-            <div className="flex items-center justify-center gap-2">
-              <Select value={isHourValid ? editHour : ''} onValueChange={setEditHour}>
-                <SelectTrigger className="w-24 text-center text-xl font-bold bg-fasting-secondary backdrop-blur-md border-fasting-ring text-fasting h-14">
-                  <SelectValue placeholder="--" />
-                </SelectTrigger>
-                <SelectContent className="bg-fasting-heavy backdrop-blur-xl border-fasting-ring max-h-[200px]">
-                  {availableHours.map(i => {
-                    const label = i.toString().padStart(2, '0');
-                    return (
-                      <SelectItem key={i} value={label} className="text-fasting">
-                        {label}시
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              <span className="text-fasting text-xl font-bold">:</span>
-              <Select value={isMinuteValid ? editMinute : ''} onValueChange={setEditMinute}>
-                <SelectTrigger className="w-24 text-center text-xl font-bold bg-fasting-secondary backdrop-blur-md border-fasting-ring text-fasting h-14">
-                  <SelectValue placeholder="--" />
-                </SelectTrigger>
-                <SelectContent className="bg-fasting-heavy backdrop-blur-xl border-fasting-ring max-h-[200px]">
-                  {availableMinutes.map(m => {
-                    const val = m.toString().padStart(2, '0');
-                    return (
-                      <SelectItem key={m} value={val} className="text-fasting">
-                        {val}분
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            {isHourValid && isMinuteValid && (
-              <span className="text-fasting-accent text-sm font-semibold">
-                {editHour}시 {editMinute}분
-              </span>
-            )}
-          </div>
-          <button onClick={handleSaveStartTime} disabled={!isHourValid || !isMinuteValid} className="w-full rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed py-[16px]">저장</button>
-        </SheetContent>
-      </Sheet>
+        {isHourValid && isMinuteValid && (
+          <Typography variant="body2" fontWeight={600} sx={{ color: fastingAccent, textAlign: 'center', mb: 2 }}>
+            {editHour}시 {editMinute}분
+          </Typography>
+        )}
 
-      {/* Nudge sheet */}
-      <Sheet open={showNudge && !isComplete} onOpenChange={setShowNudge}>
-        <SheetContent side="bottom" className="rounded-t-3xl px-5 pb-8 pt-6 bg-fasting-heavy backdrop-blur-xl border-0">
-          <SheetHeader className="text-left mb-5">
-            <SheetTitle className="text-lg font-bold text-fasting">
-              목표까지 <span className="text-fasting-accent">{remainingText}</span> 남았습니다
-            </SheetTitle>
-            <SheetDescription className="text-sm text-fasting-muted">
-              조금만 더 하면 {FASTING_STAGES[Math.min(currentStageIndex + 1, FASTING_STAGES.length - 1)].name} 단계예요! 💪
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex gap-3">
-            <button onClick={() => setShowNudge(false)} className="flex-1 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-semibold text-base py-[16px]">계속 할게요</button>
-            <button onClick={onEndFasting} className="flex-1 rounded-xl border border-fasting-ring text-fasting-muted font-semibold text-base py-[16px]">그래도 종료</button>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={handleSaveStartTime}
+          disabled={!isHourValid || !isMinuteValid}
+          size="large"
+          sx={{
+            borderRadius: 3,
+            border: `1px solid ${fastingBorder}`,
+            color: 'white',
+            bgcolor: fastingBg,
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', border: `1px solid ${fastingBorder}` },
+            '&.Mui-disabled': { opacity: 0.4, color: 'white', border: `1px solid ${fastingBorder}` },
+          }}
+        >
+          저장
+        </Button>
+      </Drawer>
+
+      {/* Nudge drawer */}
+      <Drawer
+        anchor="bottom"
+        open={showNudge && !isComplete}
+        onClose={() => setShowNudge(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '24px 24px 0 0',
+            px: 2.5,
+            pb: 4,
+            pt: 3,
+            bgcolor: fastingHeavy,
+            backdropFilter: 'blur(24px)',
+          },
+        }}
+      >
+        <Typography variant="h6" fontWeight={700} sx={{ color: fastingText, mb: 0.5 }}>
+          목표까지{' '}
+          <Box component="span" sx={{ color: fastingAccent }}>{remainingText}</Box>
+          {' '}남았습니다
+        </Typography>
+        <Typography variant="body2" sx={{ color: fastingMuted, mb: 2.5 }}>
+          조금만 더 하면 {FASTING_STAGES[Math.min(currentStageIndex + 1, FASTING_STAGES.length - 1)].name} 단계예요! 💪
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            sx={{
+              flex: 1, borderRadius: 3,
+              border: `1px solid ${fastingBorder}`,
+              color: 'white',
+              bgcolor: fastingBg,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', border: `1px solid ${fastingBorder}` },
+            }}
+            size="large"
+            onClick={() => setShowNudge(false)}
+          >
+            계속 할게요
+          </Button>
+          <Button
+            variant="text"
+            sx={{
+              flex: 1, borderRadius: 3,
+              border: `1px solid ${fastingBorder}`,
+              color: fastingMuted,
+              '&:hover': { bgcolor: 'transparent', color: fastingText },
+            }}
+            size="large"
+            onClick={onEndFasting}
+          >
+            그래도 종료
+          </Button>
+        </Box>
+      </Drawer>
+    </Box>
   );
 }

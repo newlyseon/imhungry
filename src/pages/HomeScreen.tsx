@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Trophy, CalendarClock } from 'lucide-react';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { FastingConfig, FastingType, FASTING_PRESETS, SessionRecord, getMostUsedRoutine } from '@/hooks/useFastingStore';
 import { formatWallClock, formatWallClockWithDay } from '@/lib/formatTime';
 import { ReserveFastingSheet } from '@/components/ReserveFastingSheet';
@@ -32,7 +38,6 @@ function getContextMotivation(history: SessionRecord[]): string | null {
 
 export function HomeScreen({ totalCompletedSessions, statusMessage, recentHistory, onStartFastingDirect, onReserveFasting }: HomeScreenProps) {
   const [showReserve, setShowReserve] = useState(false);
-  const mostUsed = getMostUsedRoutine(recentHistory);
 
   const motivation = statusMessage || getContextMotivation(recentHistory);
 
@@ -40,85 +45,153 @@ export function HomeScreen({ totalCompletedSessions, statusMessage, recentHistor
     return new Date(Date.now() + fastingHours * 60 * 60 * 1000);
   };
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? '좋은 아침이에요 ☀️' : hour < 18 ? '오늘도 화이팅 👋' : '좋은 저녁이에요 🌇';
+
   return (
-    <div className="h-screen bg-background px-5 flex flex-col pt-[40px] overflow-y-auto">
+    <Box sx={{ height: '100vh', bgcolor: 'background.default', px: 2.5, display: 'flex', flexDirection: 'column', pt: '40px', overflowY: 'auto' }}>
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold text-foreground">
-            {new Date().getHours() < 12 ? '좋은 아침이에요 ☀️' : new Date().getHours() < 18 ? '오늘도 화이팅 👋' : '좋은 저녁이에요 🌇'}
-          </h1>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+          <Typography variant="h5" fontWeight={800} color="text.primary">
+            {greeting}
+          </Typography>
           {totalCompletedSessions > 0 && (
-            <div className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-full">
-              <Trophy size={14} className="text-foreground" />
-              <span className="text-sm font-bold text-foreground">{totalCompletedSessions}회</span>
-            </div>
+            <Chip
+              icon={<EmojiEventsIcon sx={{ fontSize: 16 }} />}
+              label={`${totalCompletedSessions}회`}
+              size="small"
+              sx={{ fontWeight: 700, bgcolor: 'action.hover', color: 'text.primary', px: 0.5 }}
+            />
           )}
-        </div>
-        <p className="text-base text-muted-foreground">단식 루틴을 선택하고 바로 시작하세요</p>
+        </Box>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          단식 루틴을 선택하고 바로 시작하세요
+        </Typography>
       </motion.div>
 
-      {/* Fasting type cards */}
-      <div className="flex flex-col gap-3 pb-8">
+      {/* Cards */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 4 }}>
         {/* Reserve card */}
-        <motion.button
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => setShowReserve(true)}
-          className="relative w-full p-5 text-left border-0 hover:brightness-110 transition-all shadow-card rounded-md bg-emerald-600 text-white"
         >
-          <div>
-            <span className="text-xl font-bold">시작할 시간 설정하기</span>
-            <p className="text-base opacity-70 mt-1">단식 예정이라면 시작할 시간을 예약해보세요</p>
-          </div>
-          <div className="mt-1 flex justify-end">
-            <span className="text-center text-sm font-semibold rounded-xl px-[14px] py-[8px] bg-white text-emerald-700">예약하기</span>
-          </div>
-        </motion.button>
+          <Paper
+            component="button"
+            onClick={() => setShowReserve(true)}
+            elevation={2}
+            sx={{
+              width: '100%',
+              p: 2.5,
+              textAlign: 'left',
+              bgcolor: 'primary.main',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              borderRadius: 1.2,
+              transition: 'filter 0.15s',
+              '&:hover': { filter: 'brightness(1.08)' },
+              '&:active': { filter: 'brightness(0.95)' },
+            }}
+          >
+            <Typography variant="h6" fontWeight={800} sx={{ color: 'white' }}>
+              시작할 시간 설정하기
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 0.5 }}>
+              단식 예정이라면 시작할 시간을 예약해보세요
+            </Typography>
+            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <Chip
+                label="예약하기"
+                size="small"
+                sx={{
+                  bgcolor: 'white',
+                  color: 'primary.dark',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  px: 0.5,
+                  height: 32,
+                  borderRadius: '6px',
+                }}
+              />
+            </Box>
+          </Paper>
+        </motion.div>
 
         {CARDS.map((card, i) => {
           const preset = FASTING_PRESETS[card.type];
           const mealTime = getMealTime(preset.fastingHours);
 
           return (
-            <motion.button
+            <motion.div
               key={card.type}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.16 + i * 0.06 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => onStartFastingDirect(preset)}
-              className="relative w-full p-5 text-left bg-card border-0 hover:border-foreground/10 transition-all shadow-card rounded-md"
             >
-              <div>
-                <div className="gap-2 mb-1 items-center justify-start flex flex-row">
-                  <span className="text-xl font-bold text-foreground">
+              <Paper
+                component="button"
+                onClick={() => onStartFastingDirect(preset)}
+                elevation={1}
+                sx={{
+                  width: '100%',
+                  p: 2.5,
+                  textAlign: 'left',
+                  bgcolor: 'background.paper',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: 1.2,
+                  transition: 'box-shadow 0.15s',
+                  '&:hover': { boxShadow: 3 },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="h6" fontWeight={800} color="text.primary">
                     {card.label} 단식
-                  </span>
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    {card.subtitle}
-                  </span>
-                </div>
-                <p className="text-base text-muted-foreground">
-                  지금 시작하면 <span className="font-semibold text-emerald-700">{formatWallClockWithDay(mealTime)}</span> 식사 가능
-                </p>
-              </div>
+                  </Typography>
+                  <Chip
+                    label={card.subtitle}
+                    size="small"
+                    sx={{ fontSize: '0.7rem', height: 22, bgcolor: 'action.hover', color: 'text.secondary', fontWeight: 600 }}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  <Box component="span" sx={{ fontWeight: 800, color: 'primary.dark' }}>
+                    {formatWallClockWithDay(mealTime)}
+                  </Box>{' '}
+                  이 되면 식사 가능
+                </Typography>
 
-              <div className="mt-1 flex justify-end">
-                <span className="text-center text-sm font-semibold text-primary-foreground bg-neutral-900 rounded-sm py-[8px] px-[14px]">시작하기</span>
-              </div>
-            </motion.button>
+                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Chip
+                    label="시작하기"
+                    size="small"
+                    sx={{
+                      bgcolor: 'secondary.main',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      px: 0.5,
+                      height: 32,
+                      borderRadius: '6px',
+                    }}
+                  />
+                </Box>
+              </Paper>
+            </motion.div>
           );
         })}
-      </div>
+      </Box>
 
       <ReserveFastingSheet
         open={showReserve}
         onOpenChange={setShowReserve}
         onReserve={onReserveFasting}
       />
-    </div>
+    </Box>
   );
 }

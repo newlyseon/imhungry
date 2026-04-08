@@ -1,13 +1,21 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Drawer from '@mui/material/Drawer';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import Chip from '@mui/material/Chip';
 import { FastingSession, FastingType, FASTING_PRESETS, FastingConfig } from '@/hooks/useFastingStore';
 import { useCountdown } from '@/hooks/useCountdown';
 import { formatWallClock, formatWallClockWithDay } from '@/lib/formatTime';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const FOOD_EMOJIS = ['🍕', '🍔', '🍣', '🍜', '🥗', '🍝', '🌮', '🍱', '🥘', '🍛', '🍲', '🥩', '🍤', '🥟', '🧆'];
-
 function getRandomEmoji() {
   return FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
 }
@@ -35,7 +43,6 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
   const [showChangeRoutine, setShowChangeRoutine] = useState(false);
   const [foodEmoji] = useState(() => getRandomEmoji());
 
-  // Time change state
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
@@ -74,7 +81,6 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
     setShowChangeTime(false);
   };
 
-  // Routine change state
   const currentType = session.config.type === 'custom' ? '16:8' : session.config.type as Exclude<FastingType, 'custom'>;
   const [selectedRoutine, setSelectedRoutine] = useState<Exclude<FastingType, 'custom'>>(currentType);
 
@@ -84,180 +90,201 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
   };
 
   return (
-    <div className="h-screen bg-white flex flex-col items-center px-5 pt-8 overflow-hidden">
-      <div className="flex-1 w-full overflow-y-auto">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">단식 예약중</h1>
-            <p className="text-muted-foreground text-base mt-0.5">
-              {session.config.type === 'custom' ? `${session.config.fastingHours}:${session.config.eatingHours}` : session.config.type} · {formatWallClock(reservedDate)} 시작
-            </p>
-          </div>
+    <Box sx={{ height: '100vh', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', alignItems: 'center', px: 2.5, pt: 4, overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, width: '100%', overflowY: 'auto' }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box>
+              <Typography variant="h5" fontWeight={700} color="text.primary">단식 예약중</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {session.config.type === 'custom' ? `${session.config.fastingHours}:${session.config.eatingHours}` : session.config.type} · {formatWallClock(reservedDate)} 시작
+              </Typography>
+            </Box>
+          </Box>
         </motion.div>
 
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200 }}
-          className="flex flex-col items-center mt-[56px] mb-10"
         >
-          <div className="mb-6">
-            <span className="text-7xl">{foodEmoji}</span>
-          </div>
-          <p className="text-foreground text-xl font-bold mb-1 text-center">
-            {isComplete ? '곧 단식이 시작됩니다...' : <>단식 시작까지 <span className="text-emerald-700">{formatted}</span> 남았어요</>}
-          </p>
-          <p className="text-muted-foreground text-base text-center">좋아하는 음식, 맛있게 드세요.</p>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 7, mb: 5 }}>
+            <Typography sx={{ fontSize: 72, mb: 3, lineHeight: 1 }}>{foodEmoji}</Typography>
+            <Typography variant="h6" fontWeight={700} textAlign="center" color="text.primary" sx={{ mb: 0.5 }}>
+              {isComplete ? '곧 단식이 시작됩니다...' : (
+                <>단식 시작까지 <Box component="span" sx={{ color: 'primary.dark' }}>{formatted}</Box> 남았어요</>
+              )}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" textAlign="center">
+              좋아하는 음식, 맛있게 드세요.
+            </Typography>
+          </Box>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="w-full bg-slate-100 rounded-2xl p-5 mb-4"
-        >
-          <h3 className="text-sm text-muted-foreground font-semibold mb-3">예약 목표</h3>
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-center">
-              <span className="text-base text-muted-foreground">단식 루틴</span>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-foreground">{session.config.type === 'custom' ? '커스텀' : session.config.type}</span>
-                <button
-                  onClick={() => setShowChangeRoutine(true)}
-                  className="text-xs font-semibold text-primary px-2 py-0.5 rounded-[6px] bg-primary/10 hover:bg-primary/20 transition-colors"
-                >
-                  변경
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-muted-foreground">단식 시작</span>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-foreground">{formatWallClock(reservedDate)}</span>
-                <button
-                  onClick={() => setShowChangeTime(true)}
-                  className="text-xs font-semibold text-primary px-2 py-0.5 rounded-[6px] bg-primary/10 hover:bg-primary/20 transition-colors"
-                >
-                  변경
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-muted-foreground">식사 가능</span>
-              <span className="text-base font-bold text-emerald-700">{formatWallClockWithDay(fastingEndDate)}부터</span>
-            </div>
-          </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Paper elevation={0} sx={{ bgcolor: 'grey.100', borderRadius: 4, p: 2.5, mb: 2 }}>
+            <Typography variant="body2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>예약 목표</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body1" color="text.secondary">단식 루틴</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body1" fontWeight={700} color="text.primary">
+                    {session.config.type === 'custom' ? '커스텀' : session.config.type}
+                  </Typography>
+                  <Chip
+                    label="변경"
+                    size="small"
+                    onClick={() => setShowChangeRoutine(true)}
+                    sx={{ fontSize: '0.7rem', height: 24, fontWeight: 600, bgcolor: 'primary.main', color: 'white', cursor: 'pointer' }}
+                  />
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body1" color="text.secondary">단식 시작</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body1" fontWeight={700} color="text.primary">
+                    {formatWallClock(reservedDate)}
+                  </Typography>
+                  <Chip
+                    label="변경"
+                    size="small"
+                    onClick={() => setShowChangeTime(true)}
+                    sx={{ fontSize: '0.7rem', height: 24, fontWeight: 600, bgcolor: 'primary.main', color: 'white', cursor: 'pointer' }}
+                  />
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body1" color="text.secondary">식사 가능</Typography>
+                <Typography variant="body1" fontWeight={700} sx={{ color: 'primary.dark' }}>
+                  {formatWallClockWithDay(fastingEndDate)}부터
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
         </motion.div>
-      </div>
+      </Box>
 
-      <div className="w-full pb-8 pt-4">
-        <button
+      <Box sx={{ width: '100%', pb: 4, pt: 2 }}>
+        <Button
+          variant="contained"
+          fullWidth
           onClick={onResetToSetup}
-          className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-base py-[16px]"
+          size="large"
+          sx={{ borderRadius: 3 }}
         >
           예약 취소
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      {/* Change time sheet */}
-      <Sheet open={showChangeTime} onOpenChange={setShowChangeTime}>
-        <SheetContent side="bottom" className="rounded-t-3xl px-5 pb-8 pt-6 bg-background border-0">
-          <SheetHeader className="text-left mb-5">
-            <SheetTitle className="text-lg font-bold text-foreground">단식 시작 시간 변경</SheetTitle>
-            <SheetDescription className="text-sm text-muted-foreground">새로운 시작 시간을 설정하세요</SheetDescription>
-          </SheetHeader>
+      {/* Change time drawer */}
+      <Drawer anchor="bottom" open={showChangeTime} onClose={() => setShowChangeTime(false)}>
+        <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+          단식 시작 시간 변경
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+          새로운 시작 시간을 설정하세요
+        </Typography>
 
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <button
-              onClick={() => setDay('today')}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${day === 'today' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}
+        <ToggleButtonGroup
+          exclusive
+          value={day}
+          onChange={(_, v) => v && setDay(v)}
+          fullWidth
+          sx={{ mb: 2 }}
+        >
+          <ToggleButton value="today" sx={{ flex: 1, py: 1.5 }}>오늘</ToggleButton>
+          <ToggleButton value="tomorrow" sx={{ flex: 1, py: 1.5 }}>내일</ToggleButton>
+        </ToggleButtonGroup>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2 }}>
+          <FormControl>
+            <Select
+              value={isHourValid ? editHour : ''}
+              onChange={(e) => setEditHour(e.target.value)}
+              displayEmpty
+              sx={{ width: 96, height: 56, textAlign: 'center', fontWeight: 700, fontSize: '1.25rem' }}
+              renderValue={(v) => v || '--'}
             >
-              오늘
-            </button>
-            <button
-              onClick={() => setDay('tomorrow')}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${day === 'tomorrow' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}
+              {availableHours.map(i => {
+                const label = i.toString().padStart(2, '0');
+                return <MenuItem key={i} value={label}>{label}시</MenuItem>;
+              })}
+            </Select>
+          </FormControl>
+          <Typography variant="h5" fontWeight={700} color="text.primary">:</Typography>
+          <FormControl>
+            <Select
+              value={isMinuteValid ? editMinute : ''}
+              onChange={(e) => setEditMinute(e.target.value)}
+              displayEmpty
+              sx={{ width: 96, height: 56, textAlign: 'center', fontWeight: 700, fontSize: '1.25rem' }}
+              renderValue={(v) => v || '--'}
             >
-              내일
-            </button>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Select value={isHourValid ? editHour : ''} onValueChange={setEditHour}>
-              <SelectTrigger className="w-24 text-center text-xl font-bold h-14">
-                <SelectValue placeholder="--" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px]">
-                {availableHours.map(i => {
-                  const label = i.toString().padStart(2, '0');
-                  return <SelectItem key={i} value={label}>{label}시</SelectItem>;
-                })}
-              </SelectContent>
+              {availableMinutes.map(m => {
+                const val = m.toString().padStart(2, '0');
+                return <MenuItem key={m} value={val}>{val}분</MenuItem>;
+              })}
             </Select>
-            <span className="text-xl font-bold text-foreground">:</span>
-            <Select value={isMinuteValid ? editMinute : ''} onValueChange={setEditMinute}>
-              <SelectTrigger className="w-24 text-center text-xl font-bold h-14">
-                <SelectValue placeholder="--" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px]">
-                {availableMinutes.map(m => {
-                  const val = m.toString().padStart(2, '0');
-                  return <SelectItem key={m} value={val}>{val}분</SelectItem>;
-                })}
-              </SelectContent>
-            </Select>
-          </div>
+          </FormControl>
+        </Box>
 
-          {newScheduledDate && (
-            <div className="bg-muted rounded-2xl p-4 mb-5 text-center">
-              <p className="text-sm text-foreground font-semibold">{formatWallClock(newScheduledDate)}에 단식 시작</p>
-              <p className="text-base text-emerald-700 font-bold mt-1">
-                {formatWallClockWithDay(new Date(newScheduledDate.getTime() + session.config.fastingHours * 60 * 60 * 1000))}에 식사 가능
-              </p>
-            </div>
-          )}
+        {newScheduledDate && (
+          <Paper elevation={0} sx={{ bgcolor: 'grey.100', borderRadius: 3, p: 2, mb: 2.5, textAlign: 'center' }}>
+            <Typography variant="body2" fontWeight={600} color="text.primary">
+              {formatWallClock(newScheduledDate)}에 단식 시작
+            </Typography>
+            <Typography variant="body1" fontWeight={700} sx={{ color: 'primary.dark', mt: 0.5 }}>
+              {formatWallClockWithDay(new Date(newScheduledDate.getTime() + session.config.fastingHours * 60 * 60 * 1000))}에 식사 가능
+            </Typography>
+          </Paper>
+        )}
 
-          <button
-            onClick={handleConfirmChangeTime}
-            disabled={!newScheduledDate}
-            className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-base disabled:opacity-40 disabled:cursor-not-allowed py-[16px]"
-          >
-            시간 변경하기
-          </button>
-        </SheetContent>
-      </Sheet>
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={handleConfirmChangeTime}
+          disabled={!newScheduledDate}
+          size="large"
+          sx={{ borderRadius: 3 }}
+        >
+          시간 변경하기
+        </Button>
+      </Drawer>
 
-      {/* Change routine sheet */}
-      <Sheet open={showChangeRoutine} onOpenChange={setShowChangeRoutine}>
-        <SheetContent side="bottom" className="rounded-t-3xl px-5 pb-8 pt-6 bg-background border-0">
-          <SheetHeader className="text-left mb-5">
-            <SheetTitle className="text-lg font-bold text-foreground">단식 루틴 변경</SheetTitle>
-            <SheetDescription className="text-sm text-muted-foreground">변경할 단식 루틴을 선택하세요</SheetDescription>
-          </SheetHeader>
+      {/* Change routine drawer */}
+      <Drawer anchor="bottom" open={showChangeRoutine} onClose={() => setShowChangeRoutine(false)}>
+        <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+          단식 루틴 변경
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+          변경할 단식 루틴을 선택하세요
+        </Typography>
 
-          <div className="flex gap-2 mb-6">
-            {TYPES.map(t => (
-              <button
-                key={t.type}
-                onClick={() => setSelectedRoutine(t.type)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex flex-col items-center gap-0.5 ${
-                  selectedRoutine === t.type ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                <span>{t.label}</span>
-                <span className={`text-xs font-normal ${selectedRoutine === t.type ? 'opacity-80' : ''}`}>{t.subtitle}</span>
-              </button>
-            ))}
-          </div>
+        <ToggleButtonGroup
+          exclusive
+          value={selectedRoutine}
+          onChange={(_, v) => v && setSelectedRoutine(v)}
+          fullWidth
+          sx={{ mb: 3 }}
+        >
+          {TYPES.map(t => (
+            <ToggleButton key={t.type} value={t.type} sx={{ flex: 1, py: 1.5, flexDirection: 'column', gap: 0.25 }}>
+              <Typography variant="body2" fontWeight={700}>{t.label}</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.75 }}>{t.subtitle}</Typography>
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
 
-          <button
-            onClick={handleConfirmChangeRoutine}
-            className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-base py-[16px]"
-          >
-            루틴 변경하기
-          </button>
-        </SheetContent>
-      </Sheet>
-    </div>
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={handleConfirmChangeRoutine}
+          size="large"
+          sx={{ borderRadius: 3 }}
+        >
+          루틴 변경하기
+        </Button>
+      </Drawer>
+    </Box>
   );
 }

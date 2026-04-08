@@ -1,4 +1,4 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css');
 
 @tailwind base;
 @tailwind components;
@@ -92,7 +92,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: 'SUIT Variable', 'SUIT', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
 }
 

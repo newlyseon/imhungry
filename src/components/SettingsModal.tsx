@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Settings, RotateCcw, Clock, Target } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { FastingConfig, FastingType, FASTING_PRESETS } from '@/hooks/useFastingStore';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Drawer from '@mui/material/Drawer';
+import Paper from '@mui/material/Paper';
+import SettingsIcon from '@mui/icons-material/Settings';
+import RotateLeftIcon from '@mui/icons-material/RotateLeft';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
+import { FastingConfig } from '@/hooks/useFastingStore';
 
 interface SettingsModalProps {
   currentConfig: FastingConfig;
@@ -17,101 +18,140 @@ interface SettingsModalProps {
   variant?: 'fasting' | 'eating';
 }
 
-const typeOptions: { type: FastingType; label: string }[] = [
-  { type: '12:12', label: '12:12 (입문)' },
-  { type: '16:8', label: '16:8 (일반)' },
-  { type: '18:6', label: '18:6 (상급)' },
-];
-
 export function SettingsModal({ currentConfig, onResetToSetup, variant = 'fasting' }: SettingsModalProps) {
   const [open, setOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
   const isFasting = variant === 'fasting';
-  const textClass = isFasting ? 'text-fasting' : 'text-eating';
-  const mutedClass = isFasting ? 'text-fasting-muted' : 'text-eating-muted';
-  const bgClass = isFasting ? 'bg-fasting-secondary backdrop-blur-md' : 'bg-eating-secondary';
-  const sheetBg = isFasting ? 'bg-fasting-heavy backdrop-blur-xl' : 'bg-eating';
-  const cancelBorderClass = isFasting ? 'border-fasting-ring' : 'border-border';
+
+  const drawerSx = isFasting
+    ? { bgcolor: 'rgba(10,20,15,0.92)', backdropFilter: 'blur(24px)' }
+    : { bgcolor: 'hsl(145, 30%, 96%)' };
+
+  const textColor = isFasting ? 'rgba(255,255,255,0.95)' : 'hsl(150, 30%, 10%)';
+  const mutedColor = isFasting ? 'rgba(255,255,255,0.55)' : 'hsl(150, 20%, 40%)';
+  const itemBg = isFasting ? 'rgba(255,255,255,0.08)' : 'hsl(145, 25%, 92%)';
+  const iconBtnBg = isFasting ? 'rgba(255,255,255,0.08)' : 'hsl(145, 25%, 92%)';
 
   return (
     <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <button className={`p-2 rounded-xl ${bgClass} ${mutedClass} hover:opacity-80 transition-opacity`}>
-            <Settings size={20} />
-          </button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className={`rounded-t-3xl px-5 pb-8 pt-6 ${sheetBg} border-0`}>
-          <SheetHeader className="text-left mb-4">
-            <SheetTitle className={`text-lg font-bold ${textClass}`}>설정</SheetTitle>
-            <SheetDescription className={`text-sm ${mutedClass}`}>단식 설정을 변경하거나 초기화할 수 있습니다</SheetDescription>
-          </SheetHeader>
+      <IconButton
+        onClick={() => setOpen(true)}
+        size="small"
+        sx={{
+          bgcolor: iconBtnBg,
+          borderRadius: 3,
+          color: mutedColor,
+          '&:hover': { opacity: 0.8, bgcolor: iconBtnBg },
+        }}
+      >
+        <SettingsIcon fontSize="small" />
+      </IconButton>
 
-          <div className="flex flex-col gap-3 mt-2">
-            {/* Current info */}
-            <div className={`flex items-center gap-3 p-3 rounded-xl ${bgClass}`}>
-              <Target size={18} className={mutedClass} />
-              <div>
-                <p className={`text-xs ${mutedClass}`}>현재 목표</p>
-                <p className={`text-sm font-semibold ${textClass}`}>
-                  {currentConfig.type === 'custom'
-                    ? `${currentConfig.fastingHours}:${currentConfig.eatingHours}`
-                    : currentConfig.type} 단식
-                </p>
-              </div>
-            </div>
+      {/* Settings drawer */}
+      <Drawer
+        anchor="bottom"
+        open={open}
+        onClose={() => setOpen(false)}
+        PaperProps={{ sx: drawerSx }}
+      >
+        <Typography variant="h6" fontWeight={700} sx={{ color: textColor, mb: 0.5 }}>설정</Typography>
+        <Typography variant="body2" sx={{ color: mutedColor, mb: 2 }}>
+          단식 설정을 변경하거나 초기화할 수 있습니다
+        </Typography>
 
-            <div className={`flex items-center gap-3 p-3 rounded-xl ${bgClass}`}>
-              <Clock size={18} className={mutedClass} />
-              <div>
-                <p className={`text-xs ${mutedClass}`}>단식 / 식사</p>
-                <p className={`text-sm font-semibold ${textClass}`}>
-                  {currentConfig.fastingHours}시간 / {currentConfig.eatingHours}시간
-                </p>
-              </div>
-            </div>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Paper elevation={0} sx={{ bgcolor: itemBg, borderRadius: 3, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <TrackChangesIcon sx={{ color: mutedColor, fontSize: 18 }} />
+            <Box>
+              <Typography variant="caption" sx={{ color: mutedColor, display: 'block' }}>현재 목표</Typography>
+              <Typography variant="body2" fontWeight={600} sx={{ color: textColor }}>
+                {currentConfig.type === 'custom'
+                  ? `${currentConfig.fastingHours}:${currentConfig.eatingHours}`
+                  : currentConfig.type} 단식
+              </Typography>
+            </Box>
+          </Paper>
 
-            {/* Reset button */}
-            <button
-              onClick={() => {
-                setOpen(false);
-                setTimeout(() => setConfirmReset(true), 200);
-              }}
-              className={`flex items-center gap-3 p-3 rounded-xl ${bgClass} ${mutedClass} hover:opacity-80 transition-opacity mt-2`}
-            >
-              <RotateCcw size={18} />
-              <span className="text-sm font-medium">세션 초기화 (처음부터 다시)</span>
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
+          <Paper elevation={0} sx={{ bgcolor: itemBg, borderRadius: 3, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <AccessTimeIcon sx={{ color: mutedColor, fontSize: 18 }} />
+            <Box>
+              <Typography variant="caption" sx={{ color: mutedColor, display: 'block' }}>단식 / 식사</Typography>
+              <Typography variant="body2" fontWeight={600} sx={{ color: textColor }}>
+                {currentConfig.fastingHours}시간 / {currentConfig.eatingHours}시간
+              </Typography>
+            </Box>
+          </Paper>
 
-      {/* Reset confirmation */}
-      <Sheet open={confirmReset} onOpenChange={setConfirmReset}>
-        <SheetContent side="bottom" className={`rounded-t-3xl px-5 pb-8 pt-6 ${sheetBg} border-0`}>
-          <SheetHeader className="text-left mb-5">
-            <SheetTitle className={`text-lg font-bold ${textClass}`}>세션을 초기화할까요?</SheetTitle>
-            <SheetDescription className={`text-sm ${mutedClass}`}>
-              현재 기록을 삭제하고 처음부터 다시 설정합니다. 이 작업은 되돌릴 수 없습니다.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setConfirmReset(false)}
-              className={`flex-1 py-[16px] rounded-xl border ${cancelBorderClass} ${mutedClass} font-semibold text-base`}
-            >
-              취소
-            </button>
-            <button
-              onClick={() => { setConfirmReset(false); onResetToSetup(); }}
-              className="flex-1 py-[16px] rounded-xl bg-destructive text-destructive-foreground font-semibold text-base"
-            >
-              초기화
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
+          <Box
+            component="button"
+            onClick={() => {
+              setOpen(false);
+              setTimeout(() => setConfirmReset(true), 200);
+            }}
+            sx={{
+              display: 'flex', alignItems: 'center', gap: 1.5,
+              p: 1.5,
+              bgcolor: itemBg,
+              borderRadius: 3,
+              border: 'none',
+              cursor: 'pointer',
+              color: mutedColor,
+              transition: 'opacity 0.15s',
+              '&:hover': { opacity: 0.8 },
+              mt: 1,
+            }}
+          >
+            <RotateLeftIcon sx={{ fontSize: 18 }} />
+            <Typography variant="body2" fontWeight={500} sx={{ color: mutedColor }}>
+              세션 초기화 (처음부터 다시)
+            </Typography>
+          </Box>
+        </Box>
+      </Drawer>
+
+      {/* Reset confirmation drawer */}
+      <Drawer
+        anchor="bottom"
+        open={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        PaperProps={{ sx: drawerSx }}
+      >
+        <Typography variant="h6" fontWeight={700} sx={{ color: textColor, mb: 0.5 }}>
+          세션을 초기화할까요?
+        </Typography>
+        <Typography variant="body2" sx={{ color: mutedColor, mb: 3 }}>
+          현재 기록을 삭제하고 처음부터 다시 설정합니다. 이 작업은 되돌릴 수 없습니다.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setConfirmReset(false)}
+            sx={{
+              flex: 1,
+              borderRadius: 3,
+              color: mutedColor,
+              borderColor: isFasting ? 'rgba(255,255,255,0.2)' : 'divider',
+              '&:hover': {
+                borderColor: isFasting ? 'rgba(255,255,255,0.3)' : 'divider',
+                bgcolor: 'transparent',
+              },
+            }}
+            size="large"
+          >
+            취소
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => { setConfirmReset(false); onResetToSetup(); }}
+            sx={{ flex: 1, borderRadius: 3 }}
+            size="large"
+          >
+            초기화
+          </Button>
+        </Box>
+      </Drawer>
     </>
   );
 }
