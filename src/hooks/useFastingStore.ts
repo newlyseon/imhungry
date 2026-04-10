@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type FastingType = '12:12' | '16:8' | '18:6' | 'custom';
+export type FastingType = '12:12' | '14:10' | '16:8' | '18:6' | 'custom';
 export type AppPhase = 'home' | 'reserved' | 'eating' | 'fasting' | 'result';
 
 export interface FastingStage {
@@ -24,6 +24,7 @@ export interface FastingConfig {
 
 export const FASTING_PRESETS: Record<Exclude<FastingType, 'custom'>, FastingConfig> = {
   '12:12': { type: '12:12', fastingHours: 12, eatingHours: 12 },
+  '14:10': { type: '14:10', fastingHours: 14, eatingHours: 10 },
   '16:8': { type: '16:8', fastingHours: 16, eatingHours: 8 },
   '18:6': { type: '18:6', fastingHours: 18, eatingHours: 6 },
 };
@@ -131,6 +132,18 @@ export function useFastingStore() {
       session: {
         config,
         fastingStartTime: now,
+      },
+    }));
+  }, []);
+
+  // Home → start fasting with a past start time (already fasting flow)
+  const startFastingFromPast = useCallback((config: FastingConfig, startTime: Date) => {
+    setState(prev => ({
+      ...prev,
+      phase: 'fasting',
+      session: {
+        config,
+        fastingStartTime: startTime.getTime(),
       },
     }));
   }, []);
@@ -274,6 +287,7 @@ export function useFastingStore() {
     ...state,
     startEating,
     startFastingDirect,
+    startFastingFromPast,
     reserveFasting,
     startFasting,
     endFasting,

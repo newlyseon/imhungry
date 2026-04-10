@@ -15,6 +15,8 @@ const Index = () => {
         statusMessage={store.lastStatusMessage}
         recentHistory={store.recentHistory}
         onStartFastingDirect={store.startFastingDirect}
+        onStartFastingFromPast={store.startFastingFromPast}
+        onStartEating={store.startEating}
         onReserveFasting={store.reserveFasting}
       />
     );
@@ -68,6 +70,8 @@ const Index = () => {
       totalCompletedSessions={store.totalCompletedSessions}
       recentHistory={store.recentHistory || []}
       onStartFastingDirect={store.startFastingDirect}
+      onStartFastingFromPast={store.startFastingFromPast}
+      onStartEating={store.startEating}
       onReserveFasting={store.reserveFasting}
     />
   );

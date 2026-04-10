@@ -20,8 +20,8 @@ interface Props {
 
 const TYPES: { type: Exclude<FastingType, 'custom'>; label: string; subtitle: string }[] = [
   { type: '12:12', label: '12:12', subtitle: '입문' },
+  { type: '14:10', label: '14:10', subtitle: '표준' },
   { type: '16:8', label: '16:8', subtitle: '일반' },
-  { type: '18:6', label: '18:6', subtitle: '상급' },
 ];
 
 export function ReserveFastingSheet({ open, onOpenChange, onReserve }: Props) {
