@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type FastingType = '12:12' | '14:10' | '16:8' | '18:6' | 'custom';
-export type AppPhase = 'home' | 'reserved' | 'eating' | 'fasting' | 'result';
+export type FastingType = '12:12' | '13:11' | '14:10' | '16:8' | '18:6' | '20:4' | 'custom';
+export type AppPhase = 'onboarding' | 'home' | 'reserved' | 'eating' | 'fasting' | 'result';
+
+export interface UserProfile {
+  name: string;
+  gender: 'male' | 'female' | 'none' | 'skip';
+  heightCm: number | null;
+  ageGroup: '10s' | '20s' | '30s' | '40s' | '50s' | '60s' | '70s+' | null;
+}
 
 export interface FastingStage {
   name: string;
@@ -24,9 +31,11 @@ export interface FastingConfig {
 
 export const FASTING_PRESETS: Record<Exclude<FastingType, 'custom'>, FastingConfig> = {
   '12:12': { type: '12:12', fastingHours: 12, eatingHours: 12 },
+  '13:11': { type: '13:11', fastingHours: 13, eatingHours: 11 },
   '14:10': { type: '14:10', fastingHours: 14, eatingHours: 10 },
   '16:8': { type: '16:8', fastingHours: 16, eatingHours: 8 },
   '18:6': { type: '18:6', fastingHours: 18, eatingHours: 6 },
+  '20:4': { type: '20:4', fastingHours: 20, eatingHours: 4 },
 };
 
 export interface FastingSession {
@@ -53,6 +62,8 @@ interface FastingState {
   totalCompletedSessions: number;
   lastStatusMessage?: string;
   recentHistory: SessionRecord[];
+  onboardingCompleted: boolean;
+  userProfile: UserProfile | null;
 }
 
 const STORAGE_KEY = 'fasting-app-state';
@@ -63,12 +74,24 @@ function loadState(): FastingState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.phase === 'setup') parsed.phase = 'home';
       if (!parsed.recentHistory) parsed.recentHistory = [];
-      return parsed;
+      if (parsed.onboardingCompleted === undefined) parsed.onboardingCompleted = false;
+      if (parsed.userProfile === undefined) parsed.userProfile = null;
+      // 온보딩 미완료 시 항상 온보딩으로, 완료 시 저장된 phase 복원 (단, onboarding이면 home으로)
+      const phase = !parsed.onboardingCompleted
+        ? 'onboarding'
+        : parsed.phase === 'onboarding' ? 'home' : parsed.phase;
+      return { ...parsed, phase };
     }
   } catch {}
-  return { phase: 'home', session: null, totalCompletedSessions: 0, recentHistory: [] };
+  return {
+    phase: 'onboarding',
+    session: null,
+    totalCompletedSessions: 0,
+    recentHistory: [],
+    onboardingCompleted: false,
+    userProfile: null,
+  };
 }
 
 function saveState(state: FastingState) {
@@ -122,6 +145,19 @@ export function useFastingStore() {
     const interval = setInterval(checkReserved, 1000);
     return () => clearInterval(interval);
   }, [state.phase, state.session?.reservedFastingStart]);
+
+  // Onboarding → Home (최초 1회, 프로필 저장)
+  const completeOnboarding = useCallback((
+    profile: UserProfile,
+    _fastingType?: Exclude<FastingType, 'custom'>,
+  ) => {
+    setState(prev => ({
+      ...prev,
+      phase: 'home',
+      onboardingCompleted: true,
+      userProfile: profile,
+    }));
+  }, []);
 
   // Home → directly start fasting (quick start)
   const startFastingDirect = useCallback((config: FastingConfig) => {
@@ -235,6 +271,11 @@ export function useFastingStore() {
     setState(prev => ({ ...prev, phase: 'home' }));
   }, []);
 
+  // 홈 → 단식 화면 복귀 (session 유지)
+  const goToFasting = useCallback(() => {
+    setState(prev => prev.session ? { ...prev, phase: 'fasting' } : prev);
+  }, []);
+
   const resetToHome = useCallback(() => {
     setState(prev => ({ ...prev, phase: 'home', session: null, lastStatusMessage: undefined }));
   }, []);
@@ -285,6 +326,8 @@ export function useFastingStore() {
 
   return {
     ...state,
+    completeOnboarding,
+    goToFasting,
     startEating,
     startFastingDirect,
     startFastingFromPast,

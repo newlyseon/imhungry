@@ -25,11 +25,12 @@ interface FastingScreenProps {
   session: FastingSession;
   onEndFasting: () => void;
   onResetToSetup: () => void;
+  onGoHome: () => void;
   onUpdateStartTime: (newStartTime: Date) => void;
   getCurrentStage: () => FastingStage | null;
 }
 
-export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateStartTime, getCurrentStage }: FastingScreenProps) {
+export function FastingScreen({ session, onEndFasting, onResetToSetup, onGoHome, onUpdateStartTime, getCurrentStage }: FastingScreenProps) {
   const [showNudge, setShowNudge] = useState(false);
   const [showElapsed, setShowElapsed] = useState(false);
   const [showEditTime, setShowEditTime] = useState(false);
@@ -119,11 +120,20 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
       <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%', px: 2.5, pt: 4 }}>
         <Box sx={{ flex: 1, width: '100%', overflowY: 'auto' }}>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Box sx={{ mb: 6 }}>
-              <Typography variant="h5" fontWeight={700} sx={{ color: fastingText }}>단식 중 🌙</Typography>
-              <Typography variant="body2" sx={{ color: fastingMuted, mt: 0.5 }}>
-                {session.config.type === 'custom' ? `${session.config.fastingHours}:${session.config.eatingHours}` : session.config.type} · {progressPercent}% 완료
-              </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 6 }}>
+              <Box>
+                <Typography variant="h5" fontWeight={700} sx={{ color: fastingText }}>단식 중 🌙</Typography>
+                <Typography variant="body2" sx={{ color: fastingMuted, mt: 0.5 }}>
+                  {session.config.type === 'custom' ? `${session.config.fastingHours}:${session.config.eatingHours}` : session.config.type} · {progressPercent}% 완료
+                </Typography>
+              </Box>
+              <Box
+                component="button"
+                onClick={onGoHome}
+                sx={{ bgcolor: 'transparent', border: 'none', cursor: 'pointer', color: fastingMuted, fontSize: '14px', fontWeight: 600, pt: '4px' }}
+              >
+                홈으로
+              </Box>
             </Box>
           </motion.div>
 

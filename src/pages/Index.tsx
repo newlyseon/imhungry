@@ -1,25 +1,26 @@
+import { useState } from 'react';
 import { useFastingStore } from '@/hooks/useFastingStore';
+
+// dev: ?reset=1 → localStorage 초기화 후 온보딩부터 시작
+if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('reset') === '1') {
+  localStorage.removeItem('fasting-app-state');
+  window.history.replaceState({}, '', window.location.pathname);
+}
 import { HomeScreen } from '@/pages/HomeScreen';
 import { ReservedScreen } from '@/pages/ReservedScreen';
 import { FastingScreen } from '@/pages/FastingScreen';
 import { ResultScreen } from '@/pages/ResultScreen';
-import { EatingScreen } from '@/pages/EatingScreen';
+import { OnboardingScreen } from '@/pages/OnboardingScreen';
+import { FastingTypeScreen } from '@/pages/FastingTypeScreen';
+import { MyRecordsScreen } from '@/pages/MyRecordsScreen';
+import { BottomTabBar, type TabKey } from '@/components/BottomTabBar';
 
 const Index = () => {
   const store = useFastingStore();
+  const [activeTab, setActiveTab] = useState<TabKey>('home');
 
-  if (store.phase === 'home') {
-    return (
-      <HomeScreen
-        totalCompletedSessions={store.totalCompletedSessions}
-        statusMessage={store.lastStatusMessage}
-        recentHistory={store.recentHistory}
-        onStartFastingDirect={store.startFastingDirect}
-        onStartFastingFromPast={store.startFastingFromPast}
-        onStartEating={store.startEating}
-        onReserveFasting={store.reserveFasting}
-      />
-    );
+  if (store.phase === 'onboarding') {
+    return <OnboardingScreen onComplete={store.completeOnboarding} />;
   }
 
   if (store.phase === 'reserved' && store.session) {
@@ -33,22 +34,13 @@ const Index = () => {
     );
   }
 
-  if (store.phase === 'eating' && store.session) {
-    return (
-      <EatingScreen
-        session={store.session}
-        onStartFasting={store.startFasting}
-        onResetToSetup={store.resetToHome}
-      />
-    );
-  }
-
   if (store.phase === 'fasting' && store.session) {
     return (
       <FastingScreen
         session={store.session}
         onEndFasting={store.endFasting}
         onResetToSetup={store.resetToHome}
+        onGoHome={store.goHome}
         onUpdateStartTime={store.updateStartTime}
         getCurrentStage={store.getCurrentStage}
       />
@@ -65,15 +57,41 @@ const Index = () => {
     );
   }
 
+  // home / eating phase — show bottom tab navigation
+  const renderTabContent = () => {
+    if (activeTab === 'types') {
+      return <FastingTypeScreen />;
+    }
+    if (activeTab === 'records') {
+      return (
+        <MyRecordsScreen
+          records={store.recentHistory || []}
+          totalCompletedSessions={store.totalCompletedSessions}
+        />
+      );
+    }
+    // default: home tab
+    return (
+      <HomeScreen
+        totalCompletedSessions={store.totalCompletedSessions}
+        statusMessage={store.lastStatusMessage}
+        recentHistory={store.recentHistory || []}
+        currentPhase={store.phase}
+        currentSession={store.session}
+        onGoToFasting={store.goToFasting}
+        onStartFastingDirect={store.startFastingDirect}
+        onStartFastingFromPast={store.startFastingFromPast}
+        onStartEating={store.startEating}
+        onReserveFasting={store.reserveFasting}
+      />
+    );
+  };
+
   return (
-    <HomeScreen
-      totalCompletedSessions={store.totalCompletedSessions}
-      recentHistory={store.recentHistory || []}
-      onStartFastingDirect={store.startFastingDirect}
-      onStartFastingFromPast={store.startFastingFromPast}
-      onStartEating={store.startEating}
-      onReserveFasting={store.reserveFasting}
-    />
+    <>
+      {renderTabContent()}
+      <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+    </>
   );
 };
 
