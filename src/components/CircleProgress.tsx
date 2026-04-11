@@ -21,15 +21,15 @@ export function CircleProgress({
 
   const strokeColor = colorClass === 'fasting'
     ? 'hsl(var(--fasting-accent))'
-    : 'hsl(var(--eating-accent))';
+    : '#00498D';
 
   const trackColor = colorClass === 'fasting'
     ? 'rgba(255,255,255,0.15)'
-    : 'hsl(var(--eating-bg-secondary))';
+    : 'rgba(0, 73, 141, 0.12)';
 
   const glowFilter = colorClass === 'fasting'
     ? 'drop-shadow(0 0 12px hsl(0 0% 100% / 0.4))'
-    : 'drop-shadow(0 0 12px hsl(145 55% 42% / 0.4))';
+    : 'drop-shadow(0 0 12px rgba(0, 73, 141, 0.35))';
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
