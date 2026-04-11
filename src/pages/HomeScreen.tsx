@@ -304,9 +304,9 @@ export function HomeScreen({
           {' '}함께 시작해요.
         </Typography>
         {statusMessage && (
-          <Box sx={{ mt: '16px', py: '16px', borderRadius: '16px', bgcolor: PRIMARY, boxShadow: CARD_SHADOW }}>
+          <Box sx={{ mt: '24px', py: '16px', borderRadius: '16px', bgcolor: PRIMARY, boxShadow: CARD_SHADOW }}>
             <Box sx={{ mx: '24px' }}>
-              <Typography sx={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>{statusMessage}</Typography>
+              <Typography sx={{ fontSize: '16px', fontWeight: 600, color: 'white' }}>{statusMessage}</Typography>
             </Box>
           </Box>
         )}
