@@ -1,28 +1,29 @@
 import { useState } from 'react';
 import { useFastingStore } from '@/hooks/useFastingStore';
-
-// dev: ?reset=1 → localStorage 초기화 후 온보딩부터 시작
-if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('reset') === '1') {
-  localStorage.removeItem('fasting-app-state');
-  window.history.replaceState({}, '', window.location.pathname);
-}
 import { HomeScreen } from '@/pages/HomeScreen';
 import { ReservedScreen } from '@/pages/ReservedScreen';
-import { FastingScreen } from '@/pages/FastingScreen';
 import { ResultScreen } from '@/pages/ResultScreen';
 import { OnboardingScreen } from '@/pages/OnboardingScreen';
 import { FastingTypeScreen } from '@/pages/FastingTypeScreen';
 import { MyRecordsScreen } from '@/pages/MyRecordsScreen';
 import { BottomTabBar, type TabKey } from '@/components/BottomTabBar';
 
+// dev: ?reset=1 → localStorage 초기화 후 온보딩부터 시작
+if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('reset') === '1') {
+  localStorage.removeItem('fasting-app-state');
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
 const Index = () => {
   const store = useFastingStore();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
 
+  // 온보딩
   if (store.phase === 'onboarding') {
     return <OnboardingScreen onComplete={store.completeOnboarding} />;
   }
 
+  // 예약 대기
   if (store.phase === 'reserved' && store.session) {
     return (
       <ReservedScreen
@@ -34,19 +35,7 @@ const Index = () => {
     );
   }
 
-  if (store.phase === 'fasting' && store.session) {
-    return (
-      <FastingScreen
-        session={store.session}
-        onEndFasting={store.endFasting}
-        onResetToSetup={store.resetToHome}
-        onGoHome={store.goHome}
-        onUpdateStartTime={store.updateStartTime}
-        getCurrentStage={store.getCurrentStage}
-      />
-    );
-  }
-
+  // 결과
   if (store.phase === 'result' && store.session) {
     return (
       <ResultScreen
@@ -57,32 +46,30 @@ const Index = () => {
     );
   }
 
-  // home / eating phase — show bottom tab navigation
+  // 홈 / 단식 중 — 탭바 상시 노출
   const renderTabContent = () => {
-    if (activeTab === 'types') {
-      return <FastingTypeScreen />;
-    }
-    if (activeTab === 'records') {
-      return (
-        <MyRecordsScreen
-          records={store.recentHistory || []}
-          totalCompletedSessions={store.totalCompletedSessions}
-        />
-      );
-    }
-    // default: home tab
+    if (activeTab === 'types') return <FastingTypeScreen />;
+    if (activeTab === 'records') return (
+      <MyRecordsScreen
+        records={store.recentHistory || []}
+        totalCompletedSessions={store.totalCompletedSessions}
+      />
+    );
+    // home 탭: 홈/단식 통합 화면
     return (
       <HomeScreen
+        currentPhase={store.phase}
+        currentSession={store.session}
         totalCompletedSessions={store.totalCompletedSessions}
         statusMessage={store.lastStatusMessage}
         recentHistory={store.recentHistory || []}
-        currentPhase={store.phase}
-        currentSession={store.session}
-        onGoToFasting={store.goToFasting}
         onStartFastingDirect={store.startFastingDirect}
         onStartFastingFromPast={store.startFastingFromPast}
-        onStartEating={store.startEating}
         onReserveFasting={store.reserveFasting}
+        onEndFasting={store.endFasting}
+        onResetToSetup={store.resetToHome}
+        onUpdateStartTime={store.updateStartTime}
+        getCurrentStage={store.getCurrentStage}
       />
     );
   };
@@ -90,7 +77,13 @@ const Index = () => {
   return (
     <>
       {renderTabContent()}
-      <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          // 단식 중 다른 탭으로 이동 시 홈 state는 유지 (session 보존)
+          setActiveTab(tab);
+        }}
+      />
     </>
   );
 };

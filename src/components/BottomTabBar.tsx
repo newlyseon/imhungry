@@ -30,7 +30,10 @@ export function BottomTabBar({ activeTab, onTabChange }: Props) {
         right: 0,
         bgcolor: 'white',
         boxShadow: '0px -1px 0px rgba(0,0,0,0.06)',
+        borderRadius: '12px 12px 0 0',
         display: 'flex',
+        height: '80px',
+        alignItems: 'flex-start',
         pb: 'env(safe-area-inset-bottom)',
       }}
     >

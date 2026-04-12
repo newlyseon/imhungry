@@ -20,15 +20,15 @@ export function CircleProgress({
   const offset = circumference * (1 - Math.min(progress, 1));
 
   const strokeColor = colorClass === 'fasting'
-    ? 'hsl(var(--fasting-accent))'
+    ? '#309EFF'
     : '#00498D';
 
   const trackColor = colorClass === 'fasting'
-    ? 'rgba(255,255,255,0.15)'
+    ? 'rgba(255,255,255,0.10)'
     : 'rgba(0, 73, 141, 0.12)';
 
   const glowFilter = colorClass === 'fasting'
-    ? 'drop-shadow(0 0 12px hsl(0 0% 100% / 0.4))'
+    ? 'drop-shadow(0 0 12px rgba(48,158,255,0.5))'
     : 'drop-shadow(0 0 12px rgba(0, 73, 141, 0.35))';
 
   return (

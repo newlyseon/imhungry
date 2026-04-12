@@ -17,10 +17,10 @@ export interface FastingStage {
 }
 
 export const FASTING_STAGES: FastingStage[] = [
-  { name: '혈당 하락', description: '혈당이 안정되면서 몸이 차분해져요🩸', startHour: 0 },
-  { name: '지방 연소 시작', description: '저장된 에너지를 다 쓰고, 지방을 쓰기 시작해요🔋', startHour: 4 },
-  { name: '지방 연소 활성', description: '지방을 본격적으로 태우기 시작했어요🔥', startHour: 8 },
-  { name: '오토파지 진입', description: '몸이 스스로 회복을 시작해요✨', startHour: 16 },
+  { name: '혈당 하락', description: '혈당이 안정되면서 몸이 차분해져요.', startHour: 0 },
+  { name: '지방 연소 시작', description: '저장된 에너지를 다 쓰고, 지방을 쓰기 시작해요.', startHour: 4 },
+  { name: '지방 연소 활성', description: '지방을 본격적으로 태우기 시작했어요.', startHour: 8 },
+  { name: '오토파지 진입', description: '몸이 스스로 회복을 시작해요.', startHour: 16 },
 ];
 
 export interface FastingConfig {

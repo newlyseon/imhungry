@@ -45,116 +45,111 @@ export function ResultScreen({ session, totalCompletedSessions, onGoHome }: Resu
   const products = isSuccess ? successProducts : failProducts;
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', px: '24px', pt: '44px', pb: '24px', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>
-        {/* 헤더 */}
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-        >
-          <Box sx={{ mb: '42px' }}>
-            {isSuccess ? (
-              <>
-                <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ delay: 0.5, duration: 0.6 }}>
-                  <Typography sx={{ fontSize: '48px', mb: '12px' }}>🏆</Typography>
-                </motion.div>
-                <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
-                  {session.config.fastingHours}시간 단식 성공!
-                </Typography>
-                <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mt: '6px' }}>
-                  대단해요! 목표를 달성했습니다
-                </Typography>
-              </>
-            ) : (
-              <>
-                <Typography sx={{ fontSize: '48px', mb: '12px' }}>🙌</Typography>
-                <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
-                  조금 아쉽지만<br />{formatDuration(duration)} 동안 견디셨어요!
-                </Typography>
-                <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mt: '6px' }}>
-                  다음엔 꼭 성공해요!
-                </Typography>
-              </>
-            )}
-          </Box>
-        </motion.div>
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', px: '24px', pt: '44px', pb: '120px' }}>
+      {/* 타이틀 */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+      >
+        <Box sx={{ mb: '32px' }}>
+          {isSuccess ? (
+            <>
+              <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
+                {session.config.fastingHours}시간 단식 성공!
+              </Typography>
+              <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
+                대단해요, 목표를 달성했어요.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
+                {formatDuration(duration)} 동안 견디셨어요! 🙌
+              </Typography>
+              <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: SUB_COLOR }}>
+                다음엔 꼭 성공해요.
+              </Typography>
+            </>
+          )}
+        </Box>
+      </motion.div>
 
-        {/* 통계 카드 3열 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', mb: '24px' }}>
-            {[
-              { Icon: Clock, label: '단식 시간', value: formatDuration(duration) },
-              { Icon: Flame, label: '소모 칼로리', value: `${calories}kcal` },
-              {
-                Icon: isSuccess ? TrendingUp : HeartCrack,
-                label: isSuccess ? '누적 성공' : '달성률',
-                value: isSuccess ? `${totalCompletedSessions}회` : `${achievementRate}%`,
-              },
-            ].map((stat, i) => (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.1 }}>
-                <Box sx={{ py: '20px', borderRadius: '16px', bgcolor: 'white', boxShadow: CARD_SHADOW, textAlign: 'center' }}>
-                  <Box sx={{ mx: '12px' }}>
-                    <stat.Icon size={18} style={{ margin: '0 auto 6px', color: PRIMARY }} />
-                    <Typography sx={{ fontSize: '11px', color: SUB_COLOR, display: 'block', mb: '4px' }}>
-                      {stat.label}
-                    </Typography>
-                    <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#000' }}>
-                      {stat.value}
-                    </Typography>
-                  </Box>
+      {/* 통계 카드 3열 */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', mb: '24px' }}>
+          {[
+            { Icon: Clock, label: '단식 시간', value: formatDuration(duration) },
+            { Icon: Flame, label: '소모 칼로리', value: `${calories}kcal` },
+            {
+              Icon: isSuccess ? TrendingUp : HeartCrack,
+              label: isSuccess ? '누적 성공' : '달성률',
+              value: isSuccess ? `${totalCompletedSessions}회` : `${achievementRate}%`,
+            },
+          ].map((stat, i) => (
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}>
+              <Box sx={{ py: '20px', borderRadius: '16px', bgcolor: 'white', boxShadow: CARD_SHADOW, textAlign: 'center' }}>
+                <Box sx={{ mx: '12px' }}>
+                  <stat.Icon size={18} style={{ margin: '0 auto 6px', color: PRIMARY }} />
+                  <Typography sx={{ fontSize: '11px', color: SUB_COLOR, display: 'block', mb: '4px' }}>
+                    {stat.label}
+                  </Typography>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#000' }}>
+                    {stat.value}
+                  </Typography>
                 </Box>
+              </Box>
+            </motion.div>
+          ))}
+        </Box>
+      </motion.div>
+
+      {/* 상품 추천 */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <Box sx={{ mb: '24px' }}>
+          <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '12px' }}>
+            {isSuccess ? '혈당을 지켜주는 간식 어떠세요?' : '가벼운 간식으로 다시 준비해봐요'}
+          </Typography>
+        
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {products.map((product, i) => (
+              <motion.div key={product.name} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.1 }}>
+                <InfoCard>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: '12px', bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+                      {product.emoji}
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000' }} noWrap>
+                        {product.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mt: '4px' }}>
+                        <Typography sx={{ fontSize: '12px', color: '#E53935', fontWeight: 700 }}>{product.discount}</Typography>
+                        <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000' }}>{product.price}</Typography>
+                        <Typography sx={{ fontSize: '12px', color: SUB_COLOR, textDecoration: 'line-through' }}>{product.original}</Typography>
+                      </Box>
+                    </Box>
+                    <ExternalLink size={16} color={SUB_COLOR} style={{ flexShrink: 0 }} />
+                  </Box>
+                </InfoCard>
               </motion.div>
             ))}
           </Box>
-        </motion.div>
+        </Box>
+      </motion.div>
 
-        {/* 상품 추천 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <Box sx={{ mb: '24px' }}>
-            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '8px' }}>
-              {isSuccess ? '수고한 나에게 주는 보상' : '가벼운 간식으로 다시 준비해봐요'}
-            </Typography>
-            <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '16px' }}>
-              {isSuccess
-                ? '고생하셨어요! 혈당을 지켜주는 간식 어떠세요?'
-                : '부담 없는 저칼로리 간식으로 다음 단식을 준비하세요.'}
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {products.map((product, i) => (
-                <motion.div key={product.name} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 + i * 0.1 }}>
-                  <InfoCard>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <Box sx={{ width: 48, height: 48, borderRadius: '12px', bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
-                        {product.emoji}
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000' }} noWrap>
-                          {product.name}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mt: '4px' }}>
-                          <Typography sx={{ fontSize: '12px', color: '#E53935', fontWeight: 700 }}>{product.discount}</Typography>
-                          <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000' }}>{product.price}</Typography>
-                          <Typography sx={{ fontSize: '12px', color: SUB_COLOR, textDecoration: 'line-through' }}>{product.original}</Typography>
-                        </Box>
-                      </Box>
-                      <ExternalLink size={16} color={SUB_COLOR} style={{ flexShrink: 0 }} />
-                    </Box>
-                  </InfoCard>
-                </motion.div>
-              ))}
-            </Box>
-          </Box>
-        </motion.div>
-      </Box>
-
-      {/* CTA */}
-      <Box sx={{ pt: '24px' }}>
-        <motion.div whileTap={{ scale: 0.97 }}>
-          <Button variant="contained" fullWidth size="large" onClick={onGoHome} sx={{ borderRadius: '12px' }}>
-            홈으로 돌아가기
-          </Button>
-        </motion.div>
+      {/* Floating CTA */}
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0, left: 0, right: 0,
+          px: '24px', pb: '32px', pt: '16px',
+          bgcolor: 'background.default',
+        }}
+      >
+        <Button variant="contained" fullWidth size="large" onClick={onGoHome} sx={{ borderRadius: '12px' }}>
+          홈으로 돌아가기
+        </Button>
       </Box>
     </Box>
   );
