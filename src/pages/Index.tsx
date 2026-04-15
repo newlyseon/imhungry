@@ -23,18 +23,6 @@ const Index = () => {
     return <OnboardingScreen onComplete={store.completeOnboarding} />;
   }
 
-  // 예약 대기
-  if (store.phase === 'reserved' && store.session) {
-    return (
-      <ReservedScreen
-        session={store.session}
-        onResetToSetup={store.resetToHome}
-        onUpdateReservedStart={store.updateReservedStart}
-        onUpdateReservedConfig={store.updateReservedConfig}
-      />
-    );
-  }
-
   // 결과
   if (store.phase === 'result' && store.session) {
     return (
@@ -63,12 +51,15 @@ const Index = () => {
         totalCompletedSessions={store.totalCompletedSessions}
         statusMessage={store.lastStatusMessage}
         recentHistory={store.recentHistory || []}
+        defaultFastingType={store.defaultFastingType}
         onStartFastingDirect={store.startFastingDirect}
         onStartFastingFromPast={store.startFastingFromPast}
         onReserveFasting={store.reserveFasting}
         onEndFasting={store.endFasting}
         onResetToSetup={store.resetToHome}
         onUpdateStartTime={store.updateStartTime}
+        onUpdateReservedStart={store.updateReservedStart}
+        onUpdateReservedConfig={store.updateReservedConfig}
         getCurrentStage={store.getCurrentStage}
       />
     );

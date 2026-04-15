@@ -8,7 +8,7 @@ import { useCountdown, useElapsed } from '@/hooks/useCountdown';
 import { FastingSession } from '@/hooks/useFastingStore';
 import { formatWallClock, formatTimerDisplay, formatWallClockWithDay } from '@/lib/formatTime';
 
-const PRIMARY = '#00498D';
+const PRIMARY = '#006ACD';
 const CARD_SHADOW = '0px 7px 14px -6px rgba(0,0,0,0.08)';
 const SUB_COLOR = '#9FABB7';
 
@@ -88,7 +88,7 @@ export function EatingScreen({ session, onStartFasting, onResetToSetup }: Eating
               {isComplete ? '00 : 00 : 00' : showElapsed ? elapsedFormatted : formatted}
             </Box>
             {!isComplete && (
-              <Typography sx={{ fontSize: '11px', color: SUB_COLOR, mt: '4px' }}>
+              <Typography sx={{ fontSize: '12px', color: SUB_COLOR, mt: '4px' }}>
                 {showElapsed
                   ? `시작: ${formatWallClock(new Date(eatingStart))}`
                   : `종료 예정: ${formatWallClock(new Date(eatingEnd))}`}

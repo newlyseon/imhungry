@@ -3,7 +3,7 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#00498D',
+      main: '#006ACD',
       dark: '#003A70',
       light: '#4D9FD6',
       contrastText: '#ffffff',
@@ -24,7 +24,7 @@ const theme = createTheme({
       main: '#ef4444',
     },
     success: {
-      main: '#00498D',
+      main: '#006ACD',
     },
   },
   typography: {
@@ -149,7 +149,7 @@ const theme = createTheme({
           borderRadius: 12,
           border: 'none',
           '&.Mui-selected': {
-            backgroundColor: '#00498D',
+            backgroundColor: '#006ACD',
             color: '#ffffff',
             '&:hover': {
               backgroundColor: '#003A70',

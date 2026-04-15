@@ -13,7 +13,7 @@ import { FastingSession, FastingType, FASTING_PRESETS, FastingConfig } from '@/h
 import { useCountdown } from '@/hooks/useCountdown';
 import { formatWallClock, formatWallClockWithDay } from '@/lib/formatTime';
 
-const PRIMARY = '#00498D';
+const PRIMARY = '#006ACD';
 const CARD_SHADOW = '0px 7px 14px -6px rgba(0,0,0,0.08)';
 const SUB_COLOR = '#9FABB7';
 
@@ -134,7 +134,7 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
                       label="변경"
                       size="small"
                       onClick={row.onEdit}
-                      sx={{ fontSize: '11px', height: 24, fontWeight: 600, bgcolor: PRIMARY, color: 'white', cursor: 'pointer' }}
+                      sx={{ fontSize: '12px', height: 24, fontWeight: 600, bgcolor: PRIMARY, color: 'white', cursor: 'pointer' }}
                     />
                   )}
                 </Box>

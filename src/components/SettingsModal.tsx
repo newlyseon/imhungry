@@ -40,7 +40,7 @@ export function SettingsModal({ currentConfig, onResetToSetup, variant = 'fastin
         size="small"
         sx={{
           bgcolor: iconBtnBg,
-          borderRadius: 3,
+          borderRadius: 2,
           color: mutedColor,
           '&:hover': { opacity: 0.8, bgcolor: iconBtnBg },
         }}
@@ -61,7 +61,7 @@ export function SettingsModal({ currentConfig, onResetToSetup, variant = 'fastin
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Paper elevation={0} sx={{ bgcolor: itemBg, borderRadius: 3, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Paper elevation={0} sx={{ bgcolor: itemBg, borderRadius: 2, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TrackChangesIcon sx={{ color: mutedColor, fontSize: 18 }} />
             <Box>
               <Typography variant="caption" sx={{ color: mutedColor, display: 'block' }}>현재 목표</Typography>
@@ -73,7 +73,7 @@ export function SettingsModal({ currentConfig, onResetToSetup, variant = 'fastin
             </Box>
           </Paper>
 
-          <Paper elevation={0} sx={{ bgcolor: itemBg, borderRadius: 3, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Paper elevation={0} sx={{ bgcolor: itemBg, borderRadius: 2, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <AccessTimeIcon sx={{ color: mutedColor, fontSize: 18 }} />
             <Box>
               <Typography variant="caption" sx={{ color: mutedColor, display: 'block' }}>단식 / 식사</Typography>
@@ -93,7 +93,7 @@ export function SettingsModal({ currentConfig, onResetToSetup, variant = 'fastin
               display: 'flex', alignItems: 'center', gap: 1.5,
               p: 1.5,
               bgcolor: itemBg,
-              borderRadius: 3,
+              borderRadius: 2,
               border: 'none',
               cursor: 'pointer',
               color: mutedColor,
@@ -129,7 +129,7 @@ export function SettingsModal({ currentConfig, onResetToSetup, variant = 'fastin
             onClick={() => setConfirmReset(false)}
             sx={{
               flex: 1,
-              borderRadius: 3,
+              borderRadius: 2,
               color: mutedColor,
               borderColor: isFasting ? 'rgba(255,255,255,0.2)' : 'divider',
               '&:hover': {

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { UserProfile, FastingType } from '@/hooks/useFastingStore';
 
 const NAVY = '#1A2952';
-const BLUE = '#00498D';
+const BLUE = '#006ACD';
 const SUB_COLOR = '#9FABB7';
 const DOT_INACTIVE = '#C5CDD8';
 const CARD_SHADOW = '0px 7px 14px -6px rgba(0,0,0,0.08)';
@@ -12,7 +12,7 @@ type ExcludeCustom = Exclude<FastingType, 'custom'>;
 
 // ── 단식 패턴 카드 ──────────────────────────────────────────
 const PATTERN_CARDS: { type: ExcludeCustom; label: string; desc: string; color: string }[] = [
-  { type: '16:8',  label: '16:8',  desc: '비움과 채움이 조화를\n이루는 일상의 균형',     color: '#00408D' },
+  { type: '16:8',  label: '16:8',  desc: '비움과 채움이 조화를\n이루는 일상의 균형',     color: '#006ACD' },
   { type: '13:11', label: '13:11', desc: '내 몸의 자연스러운 리\n듬을 되찾는 첫걸음',     color: '#4FB286' },
   { type: '18:6',  label: '18:6',  desc: '몸 깊은 곳까지 닿는\n정화와 회복의 시간',       color: '#4E5C6E' },
   { type: '20:4',  label: '20:4',  desc: '본연의 에너지를 깨우\n는 고요하고 강력한 비움', color: '#D66D6D' },
@@ -250,11 +250,8 @@ export const OnboardingScreen = ({ onComplete }: Props) => {
                   <Typography sx={{ fontSize: '24px', fontWeight: 800, lineHeight: '17px', color: '#ffffff' }}>
                     {card.label}
                   </Typography>
-                  <Typography sx={{ fontSize: '14px', fontWeight: 400, lineHeight: '19px', color: '#ffffff', mt: '8px', whiteSpace: 'pre-line', flex: 1 }}>
+                  <Typography sx={{ fontSize: '14px', fontWeight: 400, lineHeight: '19px', color: '#ffffff', mt: '8px', whiteSpace: 'pre-line' }}>
                     {card.desc}
-                  </Typography>
-                  <Typography sx={{ fontSize: '18px', fontWeight: 500, lineHeight: '17px', color: 'rgba(255,255,255,0.67)', textAlign: 'right' }}>
-                    시작
                   </Typography>
                 </Box>
               </Box>

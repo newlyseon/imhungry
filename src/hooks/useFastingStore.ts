@@ -64,6 +64,7 @@ interface FastingState {
   recentHistory: SessionRecord[];
   onboardingCompleted: boolean;
   userProfile: UserProfile | null;
+  defaultFastingType: Exclude<FastingType, 'custom'>;
 }
 
 const STORAGE_KEY = 'fasting-app-state';
@@ -77,6 +78,7 @@ function loadState(): FastingState {
       if (!parsed.recentHistory) parsed.recentHistory = [];
       if (parsed.onboardingCompleted === undefined) parsed.onboardingCompleted = false;
       if (parsed.userProfile === undefined) parsed.userProfile = null;
+      if (parsed.defaultFastingType === undefined) parsed.defaultFastingType = '16:8';
       // 온보딩 미완료 시 항상 온보딩으로, 완료 시 저장된 phase 복원 (단, onboarding이면 home으로)
       const phase = !parsed.onboardingCompleted
         ? 'onboarding'
@@ -91,6 +93,7 @@ function loadState(): FastingState {
     recentHistory: [],
     onboardingCompleted: false,
     userProfile: null,
+    defaultFastingType: '16:8',
   };
 }
 
@@ -149,13 +152,14 @@ export function useFastingStore() {
   // Onboarding → Home (최초 1회, 프로필 저장)
   const completeOnboarding = useCallback((
     profile: UserProfile,
-    _fastingType?: Exclude<FastingType, 'custom'>,
+    fastingType?: Exclude<FastingType, 'custom'>,
   ) => {
     setState(prev => ({
       ...prev,
       phase: 'home',
       onboardingCompleted: true,
       userProfile: profile,
+      defaultFastingType: fastingType ?? prev.defaultFastingType,
     }));
   }, []);
 
@@ -260,7 +264,7 @@ export function useFastingStore() {
           ? prev.totalCompletedSessions + 1
           : prev.totalCompletedSessions,
         lastStatusMessage: isSuccess
-          ? `${prev.session.config.fastingHours}시간 단식을 성공했어요! 🎉`
+          ? `${prev.session.config.fastingHours}시간 단식을 성공했어요!`
           : undefined,
         recentHistory: [...prev.recentHistory, record].slice(-20), // keep last 20
       };

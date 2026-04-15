@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -15,6 +15,8 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import CloseIcon from '@mui/icons-material/Close';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import { Flame, Lightbulb } from 'lucide-react';
 import { CircleProgress } from '@/components/CircleProgress';
 import { useCountdown, useElapsed } from '@/hooks/useCountdown';
 import {
@@ -29,9 +31,7 @@ import fastingBg2 from '@/assets/fasting-bg-2.png';
 const FASTING_BGS = [fastingBg1, fastingBg2];
 
 // ── 디자인 토큰 (홈 모드) ────────────────────────────────────
-const PRIMARY = '#00498D';
-const PRIMARY_DARK = '#003A70';
-const PRIMARY_BTN = '#1A5FAD';
+const PRIMARY = '#006ACD';
 const CARD_SHADOW = '0px 7px 14px -6px rgba(0,0,0,0.08)';
 const SUB_COLOR = '#9FABB7';
 
@@ -45,7 +45,6 @@ const F_BORDER = 'rgba(255,255,255,0.15)';
 
 const ALL_TYPES: Exclude<FastingType, 'custom'>[] = ['12:12', '13:11', '14:10', '16:8', '18:6', '20:4'];
 const TAB_BAR_HEIGHT = 80;
-const BOTTOM_BAR_HEIGHT = 72;
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -66,6 +65,67 @@ function formatEndTime(fastingHours: number): string {
   return `${isToday ? '오늘' : '내일'} ${ampm} ${displayH}시${displayM}에 종료돼요`;
 }
 
+const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function getLast7Days(history: SessionRecord[]) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dateStr = d.toDateString();
+    const dayRecords = history.filter(r => new Date(r.timestamp).toDateString() === dateStr);
+    return {
+      label: DAY_LABELS[d.getDay()],
+      isToday: i === 6,
+      hasSuccess: dayRecords.some(r => r.isSuccess),
+      hasRecord: dayRecords.length > 0,
+    };
+  });
+}
+
+function getCurrentStreak(history: SessionRecord[]): number {
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i <= 30; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const hasSuccess = history.some(r => new Date(r.timestamp).toDateString() === d.toDateString() && r.isSuccess);
+    if (hasSuccess) {
+      streak++;
+    } else if (i > 0) {
+      break;
+    }
+    // i === 0 & no record today → skip (user hasn't fasted yet today)
+  }
+  return streak;
+}
+
+function getSmartTip(streak: number, totalSessions: number): string {
+  const h = new Date().getHours();
+  if (streak >= 7) return `${streak}일 연속 성공! 몸이 이미 리듬을 기억하고 있어요.`;
+  if (streak >= 3) return `${streak}일 연속 성공 중이에요. 이 흐름 그대로 이어가요.`;
+  if (totalSessions === 0) return '첫 단식이에요. 12:12부터 가볍게 시작해봐요.';
+  if (h >= 6 && h < 10) return '아침 공복 상태를 활용해보세요. 지금이 시작하기 가장 좋아요!';
+  if (h >= 20 || h < 3) return '자는 동안 절반이 지나가요. 지금 시작하면 수월해요.';
+  if (h >= 14 && h < 18) return '오후 슬럼프 전에 단식을 시작하면 에너지가 안정돼요.';
+  return '규칙적인 단식은 3주가 지나면 자연스럽게 습관이 돼요.';
+}
+
+interface FastingInfoItem { title: string; body: string; }
+const FASTING_INFO: FastingInfoItem[] = [
+  { title: '혈당이 안정되는 시간이에요', body: '식후 2~4시간은 혈당이 내려가며 인슐린 분비가 줄어들어요. 몸이 소화 대신 회복 모드로 전환되기 시작해요.' },
+  { title: '지방 연소가 시작됐어요', body: '글리코겐이 고갈되면 몸은 지방을 에너지원으로 쓰기 시작해요. 이 시점부터 체지방 분해가 본격적으로 일어나요.' },
+  { title: '지방 연소가 활발해요', body: '케톤체 생성이 활성화되며 뇌와 근육이 지방에서 에너지를 얻어요. 집중력이 오히려 높아지는 걸 느낄 수 있어요.' },
+  { title: '오토파지가 시작됐어요', body: '16시간 이상 단식하면 세포가 손상된 단백질을 스스로 제거하는 오토파지가 활성화돼요. 노화 방지와 면역 향상에 도움이 돼요.' },
+];
+
+function getFastingInfoByElapsed(elapsedMs: number): FastingInfoItem {
+  const hours = elapsedMs / (1000 * 60 * 60);
+  if (hours >= 16) return FASTING_INFO[3];
+  if (hours >= 8) return FASTING_INFO[2];
+  if (hours >= 4) return FASTING_INFO[1];
+  return FASTING_INFO[0];
+}
+
 function InfoCard({ children }: { children: React.ReactNode }) {
   return (
     <Box sx={{ py: '20px', borderRadius: '16px', bgcolor: 'white', boxShadow: CARD_SHADOW }}>
@@ -81,12 +141,15 @@ export interface HomeScreenProps {
   totalCompletedSessions: number;
   statusMessage?: string;
   recentHistory: SessionRecord[];
+  defaultFastingType: Exclude<FastingType, 'custom'>;
   onStartFastingDirect: (config: FastingConfig) => void;
   onStartFastingFromPast: (config: FastingConfig, startTime: Date) => void;
   onReserveFasting: (config: FastingConfig, scheduledStart: Date) => void;
   onEndFasting: () => void;
   onResetToSetup: () => void;
   onUpdateStartTime: (newStartTime: Date) => void;
+  onUpdateReservedStart: (newStart: Date) => void;
+  onUpdateReservedConfig: (config: FastingConfig) => void;
   getCurrentStage: () => FastingStage | null;
 }
 
@@ -94,19 +157,19 @@ export interface HomeScreenProps {
 // 단식 모드
 // ────────────────────────────────────────────────────────────
 function FastingMode({
-  session, onEndFasting, onResetToSetup, onUpdateStartTime, getCurrentStage,
+  session, onEndFasting, onCancelFasting, onUpdateStartTime, getCurrentStage,
 }: {
   session: FastingSession;
   onEndFasting: () => void;
-  onResetToSetup: () => void;
+  onCancelFasting: () => void;
   onUpdateStartTime: (d: Date) => void;
   getCurrentStage: () => FastingStage | null;
 }) {
   const [showElapsed, setShowElapsed] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
   const [showEditTime, setShowEditTime] = useState(false);
+  const stepperRef = useRef<HTMLDivElement>(null);
 
-  const bgImage = FASTING_BGS[Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % FASTING_BGS.length];
   const targetTime = session.fastingStartTime + session.config.fastingHours * 60 * 60 * 1000;
   const { formatted, isComplete } = useCountdown(targetTime);
   const { elapsedMs } = useElapsed(session.fastingStartTime);
@@ -160,39 +223,40 @@ function FastingMode({
     setShowEditTime(false);
   };
 
+  const STAGE_ITEM_H = 42; // 원 10px + gap 32px
+  const CLIP_H = 105; // 2.5단계 높이
+
+  useEffect(() => {
+    stepperRef.current?.scrollTo({ top: currentStageIndex * STAGE_ITEM_H, behavior: 'smooth' });
+  }, [currentStageIndex]);
+
   return (
     <>
-      {/* 배경 */}
-      <Box sx={{ position: 'fixed', inset: 0, backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }} />
-      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(17,29,41,0.85)', zIndex: 0 }} />
-
-      {/* 스크롤 콘텐츠 */}
+      {/* 콘텐츠 — 시작/종료 바 포함, 탭바 높이만큼 pb */}
       <Box
         sx={{
-          position: 'relative', zIndex: 1,
-          overflowY: 'auto',
-          px: '24px', pt: '70px',
-          pb: `${BOTTOM_BAR_HEIGHT + TAB_BAR_HEIGHT + 16}px`,
+          px: '24px', pt: 'max(44px, env(safe-area-inset-top))',
+          pb: `${TAB_BAR_HEIGHT + 16}px`,
         }}
       >
         {/* 타이틀 */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-          <Box sx={{ mb: '40px' }}>
+          <Box sx={{ mb: '20px' }}>
             <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: F_TEXT }}>
-              단식한지 {progressPercent}% 경과!
+              {isComplete ? '목표 달성!' : `단식한지 ${progressPercent}% 경과!`}
             </Typography>
             <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: F_TEXT }}>
-              {currentStage?.description ?? '단식을 시작했어요'}
+              {isComplete ? '이제 건강한 음식 마음껏 드세요.' : (currentStage?.description ?? '단식을 시작했어요')}
             </Typography>
           </Box>
         </motion.div>
 
         {/* 원형 타이머 */}
         <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: '24px' }}>
-            <CircleProgress progress={progress} colorClass="fasting">
-              <Typography sx={{ color: F_TEXT, mb: '4px', fontSize: '20px', fontWeight: 600 }}>
-                {isComplete ? '목표 달성! 🎉' : showElapsed ? '지나간 시간' : '남은시간'}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: '20px' }}>
+            <CircleProgress progress={progress} colorClass="fasting" size={260}>
+              <Typography sx={{ color: F_TEXT, mb: '4px', fontSize: '16px', fontWeight: 600 }}>
+                {isComplete ? '목표 달성!' : showElapsed ? '지나간 시간' : '남은시간'}
               </Typography>
               <Box
                 component="button"
@@ -202,7 +266,7 @@ function FastingMode({
                 {isComplete ? '00 : 00 : 00' : showElapsed ? formatTimerDisplay(elapsedMs) : formatted}
               </Box>
               {!isComplete && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.6)', mt: '6px', fontSize: '15px', textAlign: 'center' }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.6)', mt: '6px', fontSize: '14px', textAlign: 'center' }}>
                   {showElapsed
                     ? `${formatWallClock(new Date(session.fastingStartTime))}에 시작했어요`
                     : `${formatWallClock(new Date(targetTime))}에 식사할 수 있어요`}
@@ -212,56 +276,126 @@ function FastingMode({
           </Box>
         </motion.div>
 
-        {/* 스테이지 바 */}
+        {/* 수직 스테이지 스테퍼 */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Box sx={{ bgcolor: F_BG, backdropFilter: 'blur(12px)', borderRadius: '16px', border: `1px solid ${F_BORDER}`, height: '80px', display: 'flex', alignItems: 'center', px: '20px' }}>
-            <Box sx={{ display: 'flex', gap: '4px', width: '100%', alignItems: 'center' }}>
-              {FASTING_STAGES.map((stage, i) => {
-                const elapsedHours = elapsedMs / (1000 * 60 * 60);
-                const stageEnd = i < FASTING_STAGES.length - 1 ? FASTING_STAGES[i + 1].startHour : session.config.fastingHours;
-                const stageFill = Math.min(Math.max((elapsedHours - stage.startHour) / (stageEnd - stage.startHour), 0), 1);
-                return (
-                  <Box key={stage.name} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <LinearProgress variant="determinate" value={stageFill * 100}
-                      sx={{ width: '100%', mb: '8px', borderRadius: '4px', height: '8px', bgcolor: F_BORDER, '& .MuiLinearProgress-bar': { bgcolor: F_ACCENT, transition: 'transform 1s linear' } }}
-                    />
-                    <Typography sx={{ fontSize: '10px', textAlign: 'center', lineHeight: 1.3, color: stageFill > 0 ? F_ACCENT : F_MUTED, fontWeight: stageFill > 0 ? 700 : 400 }}>
-                      {stage.name}
-                    </Typography>
+          <Box
+              ref={stepperRef}
+              sx={{
+                height: `${CLIP_H}px`,
+                overflowY: 'scroll',
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+                mb: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
+                maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
+              }}>
+            <Box sx={{ pt: '16px', pb: '40px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {FASTING_STAGES.map((stage, i) => {
+              const elapsedHours = elapsedMs / (1000 * 60 * 60);
+              const isReached = elapsedHours >= stage.startHour;
+              const isCurrent = currentStage?.name === stage.name;
+              const isLast = i === FASTING_STAGES.length - 1;
+              return (
+                <Box key={stage.name} sx={{ display: 'flex', alignItems: 'stretch', width: '100%', maxWidth: '320px' }}>
+                  {/* 좌측: 타이틀 */}
+                  <Box sx={{ flex: 1, textAlign: 'right', pr: '12px', pb: isLast ? 0 : '32px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-end' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', height: '10px' }}>
+                      <Typography sx={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 500, color: isReached ? F_TEXT : F_MUTED, lineHeight: 1 }}>
+                        {stage.name}
+                      </Typography>
+                    </Box>
                   </Box>
-                );
-              })}
+                  {/* 중앙: 원 + 연결선 */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: '10px' }}>
+                    <Box sx={{
+                      width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                      bgcolor: isReached ? F_ACCENT : F_BORDER,
+                      boxShadow: isCurrent ? `0 0 0 3px rgba(48,158,255,0.2)` : 'none',
+                    }} />
+                    {!isLast && (
+                      <Box sx={{ width: '2px', flexGrow: 1, bgcolor: isReached ? F_ACCENT : F_BORDER }} />
+                    )}
+                  </Box>
+                  {/* 우측: 서브텍스트 */}
+                  <Box sx={{ flex: 1, pl: '12px', pb: isLast ? 0 : '32px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', height: '10px' }}>
+                      {isCurrent ? (
+                        <Typography sx={{ fontSize: '12px', color: F_ACCENT, lineHeight: 1.4 }}>
+                          {stage.description}
+                        </Typography>
+                      ) : (
+                        <Typography sx={{ fontSize: '12px', color: F_MUTED, lineHeight: 1.2 }}>
+                          {stage.startHour > 0 ? `${stage.startHour}h+` : '시작'}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+              );
+            })}
             </Box>
           </Box>
         </motion.div>
-      </Box>
 
-      {/* 하단 시작/종료 바 (탭바 위 고정) */}
-      <Box
-        sx={{
-          position: 'fixed', bottom: `${TAB_BAR_HEIGHT}px`, left: 0, right: 0, zIndex: 10,
-          height: `90x`,
-          display: 'flex', alignItems: 'center',
-        }}
-      >
-        <Box onClick={openEditTime} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', py: '48px' }}>
-          <Typography sx={{ fontSize: '15px', color: '#ffffff', mb: '4px', fontWeight: 800 }}>시작</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Typography sx={{ fontSize: '15px', fontWeight: 400, color: 'rgba(255,255,255,0.6)' }}>
-              {formatWallClock(new Date(session.fastingStartTime))}
+        {/* 시작/종료 info 바 */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: '16px' }}>
+          <Box onClick={openEditTime} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', py: '16px' }}>
+            <Typography sx={{ fontSize: '13px', color: F_MUTED, mb: '4px', fontWeight: 400 }}>시작</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Typography sx={{ fontSize: '14px', fontWeight: 500, color: F_TEXT }}>
+                {formatWallClock(new Date(session.fastingStartTime))}
+              </Typography>
+              <EditRoundedIcon sx={{ fontSize: '13px', color: F_MUTED }} />
+            </Box>
+          </Box>
+          <Box sx={{ width: '1px', height: '36px', bgcolor: F_BORDER }} />
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: '16px' }}>
+            <Typography sx={{ fontSize: '13px', color: F_MUTED, mb: '4px', fontWeight: 400 }}>종료</Typography>
+            <Typography sx={{ fontSize: '14px', fontWeight: 500, color: isComplete ? F_ACCENT : F_TEXT }}>
+              {formatWallClock(new Date(targetTime))}
             </Typography>
-            <EditRoundedIcon sx={{ fontSize: '15px', color: 'rgba(255,255,255,0.6)' }} />
           </Box>
         </Box>
-        <Box sx={{ width: '1px', height: '40px', bgcolor: F_BORDER }} />
-        <Box
-          onClick={() => isComplete ? onEndFasting() : setShowNudge(true)}
-          sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', py: '48px' }}
-        >
-          <Typography sx={{ fontSize: '15px', color: '#ffffff', mb: '4px', fontWeight: 800 }}>종료</Typography>
-          <Typography sx={{ fontSize: '15px', fontWeight: 400, color: isComplete ? F_ACCENT : 'rgba(255,255,255,0.6)' }}>
-            {formatWallClock(new Date(targetTime))}
-          </Typography>
+
+        {/* 취소 / 즉시 종료 버튼 — 최하단 */}
+        <Box sx={{ display: 'flex', gap: '8px' }}>
+          <Button
+            variant="outlined"
+            onClick={onCancelFasting}
+            sx={{
+              borderRadius: '12px',
+              borderColor: F_BORDER,
+              color: F_MUTED,
+              fontSize: '15px',
+              fontWeight: 700,
+              py: '14px',
+              px: '20px',
+              flexShrink: 0,
+              '&:hover': { borderColor: F_BORDER, bgcolor: 'rgba(255,255,255,0.08)' },
+            }}
+          >
+            취소
+          </Button>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={() => isComplete ? onEndFasting() : setShowNudge(true)}
+            sx={{
+              borderRadius: '12px',
+              bgcolor: isComplete ? F_ACCENT : 'rgba(48,158,255,0.18)',
+              boxShadow: 'none',
+              color: F_TEXT,
+              fontSize: '15px',
+              fontWeight: 700,
+              py: '14px',
+              '&:hover': { bgcolor: isComplete ? '#1a8de0' : 'rgba(48,158,255,0.28)', boxShadow: 'none' },
+            }}
+          >
+            {isComplete ? '목표 달성! 단식 종료하기' : '단식 즉시 종료'}
+          </Button>
         </Box>
       </Box>
 
@@ -314,13 +448,13 @@ function FastingMode({
           목표까지 <Box component="span" sx={{ color: PRIMARY }}>{remainingText}</Box> 남았어요
         </Typography>
         <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '24px' }}>
-          조금만 더 하면 {FASTING_STAGES[Math.min(currentStageIndex + 1, FASTING_STAGES.length - 1)].name} 단계예요! 💪
+          조금만 더 하면 {FASTING_STAGES[Math.min(currentStageIndex + 1, FASTING_STAGES.length - 1)].name} 단계예요!
         </Typography>
         <Box sx={{ display: 'flex', gap: '12px' }}>
           <Button variant="contained" size="large" onClick={() => setShowNudge(false)}
             sx={{ flex: 1, borderRadius: '12px' }}
           >계속 할게요</Button>
-          <Button variant="outlined" size="large" onClick={() => { onResetToSetup(); setShowNudge(false); }}
+          <Button variant="outlined" size="large" onClick={() => { onEndFasting(); setShowNudge(false); }}
             sx={{ flex: 1, borderRadius: '12px' }}
           >그래도 종료</Button>
         </Box>
@@ -333,16 +467,26 @@ function FastingMode({
 // 홈 모드
 // ────────────────────────────────────────────────────────────
 function HomeMode({
-  totalCompletedSessions, statusMessage,
-  onStartFastingDirect, onStartFastingFromPast, onReserveFasting,
+  currentPhase, currentSession,
+  totalCompletedSessions, statusMessage, defaultFastingType, recentHistory,
+  onStartFastingDirect, onStartFastingFromPast, onReserveFasting, onCancelReservation,
+  onUpdateReservedStart, onUpdateReservedConfig, onGoToFasting,
 }: {
+  currentPhase: AppPhase;
+  currentSession: FastingSession | null;
   totalCompletedSessions: number;
   statusMessage?: string;
+  defaultFastingType: Exclude<FastingType, 'custom'>;
+  recentHistory: SessionRecord[];
   onStartFastingDirect: (config: FastingConfig) => void;
   onStartFastingFromPast: (config: FastingConfig, startTime: Date) => void;
   onReserveFasting: (config: FastingConfig, scheduledStart: Date) => void;
+  onCancelReservation: () => void;
+  onUpdateReservedStart: (newStart: Date) => void;
+  onUpdateReservedConfig: (config: FastingConfig) => void;
+  onGoToFasting?: () => void;
 }) {
-  const [selectedType, setSelectedType] = useState<Exclude<FastingType, 'custom'>>('16:8');
+  const [selectedType, setSelectedType] = useState<Exclude<FastingType, 'custom'>>(defaultFastingType);
   const config = FASTING_PRESETS[selectedType];
 
   const now = new Date();
@@ -410,41 +554,276 @@ function HomeMode({
 
   const closeReserve = () => { setReserveOpen(false); setReserveStep(1); };
 
+  // 예약 시간 편집 drawer state
+  const [showReserveEditTime, setShowReserveEditTime] = useState(false);
+  const reservedDate = currentSession?.reservedFastingStart ? new Date(currentSession.reservedFastingStart) : new Date();
+  const [editReserveDay, setEditReserveDay] = useState<'today' | 'tomorrow'>(() =>
+    reservedDate.toDateString() === new Date().toDateString() ? 'today' : 'tomorrow'
+  );
+  const [editReserveHour, setEditReserveHour] = useState(reservedDate.getHours().toString().padStart(2, '0'));
+  const [editReserveMinute, setEditReserveMinute] = useState(
+    Math.round(reservedDate.getMinutes() / 5) * 5 === 60
+      ? '00' : (Math.round(reservedDate.getMinutes() / 5) * 5).toString().padStart(2, '0')
+  );
+
+  const openReserveEditTime = () => {
+    const d = currentSession?.reservedFastingStart ? new Date(currentSession.reservedFastingStart) : new Date();
+    setEditReserveDay(d.toDateString() === new Date().toDateString() ? 'today' : 'tomorrow');
+    setEditReserveHour(d.getHours().toString().padStart(2, '0'));
+    const rounded = Math.round(d.getMinutes() / 5) * 5;
+    setEditReserveMinute(rounded === 60 ? '00' : rounded.toString().padStart(2, '0'));
+    setShowReserveEditTime(true);
+  };
+
+  const now2 = new Date();
+  const reserveEditHours = editReserveDay === 'tomorrow'
+    ? Array.from({ length: 24 }, (_, i) => i)
+    : Array.from({ length: 24 }, (_, i) => i).filter(i => i > now2.getHours() || (i === now2.getHours() && now2.getMinutes() < 55));
+  const reserveEditMinutes = (editReserveDay === 'today' && parseInt(editReserveHour) === now2.getHours())
+    ? Array.from({ length: 12 }, (_, i) => i * 5).filter(m => m > now2.getMinutes())
+    : Array.from({ length: 12 }, (_, i) => i * 5);
+  const isReserveEditHourValid = reserveEditHours.includes(parseInt(editReserveHour));
+  const isReserveEditMinuteValid = reserveEditMinutes.includes(parseInt(editReserveMinute));
+
+  const handleSaveReserveTime = () => {
+    if (!isReserveEditHourValid || !isReserveEditMinuteValid) return;
+    const d = new Date();
+    if (editReserveDay === 'tomorrow') d.setDate(d.getDate() + 1);
+    d.setHours(parseInt(editReserveHour), parseInt(editReserveMinute), 0, 0);
+    onUpdateReservedStart(d);
+    setShowReserveEditTime(false);
+  };
+
+  const streak = getCurrentStreak(recentHistory);
+  const last7Days = getLast7Days(recentHistory);
+  const smartTip = getSmartTip(streak, totalCompletedSessions);
+
+  const isReserved = currentPhase === 'reserved' && !!currentSession?.reservedFastingStart;
+  const isFastingActive = currentPhase === 'fasting' && !!currentSession;
+
+  // hook은 조건부 호출 불가 — 예약/단식 없을 땐 fallback 값으로 대체
+  const reservedTarget = currentSession?.reservedFastingStart ?? (Date.now() + 86400000);
+  const { formatted: reserveCountdown } = useCountdown(reservedTarget);
+  const fastingStartFallback = currentSession?.fastingStartTime ?? Date.now();
+  const { elapsedMs: fastingElapsedMs } = useElapsed(fastingStartFallback);
+
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', px: '24px', pt: '44px', pb: '100px' }}>
+    <>
+      <Box sx={{ minHeight: '100dvh', px: '24px', pt: 'max(44px, env(safe-area-inset-top))', pb: `${TAB_BAR_HEIGHT + 16}px` }}>
       {/* 헤더 */}
       <Box sx={{ mb: '32px' }}>
-        <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
+        <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: F_TEXT }}>
           {getGreeting()}
         </Typography>
-        <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: '#000' }}>
+        <Typography sx={{ fontSize: '24px', fontWeight: 700, lineHeight: '32px', color: F_TEXT }}>
           오늘부터{' '}
-          <Box component="span" sx={{ color: PRIMARY }}>{totalCompletedSessions + 1}일!</Box>
+          <Box component="span" sx={{ color: F_ACCENT }}>{totalCompletedSessions + 1}일!</Box>
           {' '}함께 시작해요.
         </Typography>
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* 결과 메시지 카드 */}
-        {statusMessage && (
-          <Box sx={{ p: '20px', borderRadius: '16px', bgcolor: '#1F2327' }}>
-            <Typography sx={{ fontSize: '15px', fontWeight: 600, color: 'white' }}>{statusMessage}</Typography>
+
+        {/* 예약 현황 카드 */}
+        {isReserved && currentSession && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_ACCENT}55`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
+            {/* 헤더: 라벨 + 취소 */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: '16px' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: F_ACCENT }} />
+                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: F_ACCENT }}>단식 예약됨</Typography>
+              </Box>
+              <Box component="button" onClick={onCancelReservation}
+                sx={{ border: 'none', bgcolor: 'transparent', cursor: 'pointer', p: '4px', display: 'flex', alignItems: 'center' }}
+              >
+                <CloseIcon sx={{ fontSize: '18px', color: F_MUTED }} />
+              </Box>
+            </Box>
+
+            {/* 단식 유형 편집 */}
+            <Typography sx={{ fontSize: '12px', color: F_MUTED, mb: '6px' }}>단식 유형</Typography>
+            <Box
+              onClick={e => (e.currentTarget as HTMLElement).querySelector('select')?.click()}
+              sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', mb: '16px' }}
+            >
+              <Typography sx={{ fontSize: '22px', fontWeight: 700, color: F_TEXT, lineHeight: 1 }}>
+                {currentSession.config.type}
+              </Typography>
+              <KeyboardArrowDownRoundedIcon sx={{ fontSize: '18px', color: F_MUTED }} />
+              <Box
+                component="select"
+                value={currentSession.config.type}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const t = e.target.value as Exclude<FastingType, 'custom'>;
+                  onUpdateReservedConfig(FASTING_PRESETS[t]);
+                }}
+                sx={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+              >
+                {ALL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </Box>
+            </Box>
+
+            {/* 식사 종료 시간 편집 */}
+            <Typography sx={{ fontSize: '12px', color: F_MUTED, mb: '6px' }}>식사 종료 시간</Typography>
+            <Box
+              onClick={openReserveEditTime}
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', mb: '16px' }}
+            >
+              <Typography sx={{ fontSize: '18px', fontWeight: 600, color: F_TEXT }}>
+                {formatWallClock(new Date(currentSession.reservedFastingStart!))}
+              </Typography>
+              <EditRoundedIcon sx={{ fontSize: '16px', color: F_MUTED }} />
+            </Box>
+
+            {/* 카운트다운 */}
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '6px', borderTop: `1px solid ${F_BORDER}`, pt: '14px' }}>
+              <Typography sx={{ fontSize: '13px', color: F_MUTED }}>시작까지</Typography>
+              <Typography sx={{ fontSize: '20px', fontWeight: 700, color: F_ACCENT, fontVariantNumeric: 'tabular-nums' }}>
+                {reserveCountdown}
+              </Typography>
+            </Box>
           </Box>
         )}
-        {/* 바로 시작 카드 (파란 배경) */}
-        <Box sx={{ borderRadius: '20px', bgcolor: PRIMARY, boxShadow: CARD_SHADOW, p: '20px' }}>
+
+        {/* 예약 시간 편집 Drawer */}
+        <Drawer anchor="bottom" open={showReserveEditTime} onClose={() => setShowReserveEditTime(false)}
+          slotProps={{ paper: { sx: { borderRadius: '24px 24px 0 0', px: '24px', pb: '40px', pt: '24px', bgcolor: 'white' } } }}
+        >
+          <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '4px' }}>식사 종료 시간 수정</Typography>
+          <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '24px' }}>단식이 시작될 시간을 입력해주세요.</Typography>
+          <ToggleButtonGroup exclusive value={editReserveDay} onChange={(_, v) => v && setEditReserveDay(v)} fullWidth sx={{ mb: '16px' }}>
+            {(['today', 'tomorrow'] as const).map(val => (
+              <ToggleButton key={val} value={val} sx={{ flex: 1, py: '12px' }}>
+                {val === 'today' ? '오늘' : '내일'}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', mb: '16px' }}>
+            <FormControl>
+              <Select value={isReserveEditHourValid ? editReserveHour : ''} onChange={e => setEditReserveHour(e.target.value)} displayEmpty
+                sx={{ width: 96, height: 56, textAlign: 'center', fontWeight: 700, fontSize: '1.25rem' }}
+                renderValue={v => v || '--'}
+                MenuProps={{ PaperProps: { sx: { maxHeight: 200 } } }}
+              >
+                {reserveEditHours.map(i => { const l = i.toString().padStart(2, '0'); return <MenuItem key={i} value={l}>{l}시</MenuItem>; })}
+              </Select>
+            </FormControl>
+            <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#000' }}>:</Typography>
+            <FormControl>
+              <Select value={isReserveEditMinuteValid ? editReserveMinute : ''} onChange={e => setEditReserveMinute(e.target.value)} displayEmpty
+                sx={{ width: 96, height: 56, textAlign: 'center', fontWeight: 700, fontSize: '1.25rem' }}
+                renderValue={v => v || '--'}
+                MenuProps={{ PaperProps: { sx: { maxHeight: 200 } } }}
+              >
+                {reserveEditMinutes.map(m => { const v = m.toString().padStart(2, '0'); return <MenuItem key={m} value={v}>{v}분</MenuItem>; })}
+              </Select>
+            </FormControl>
+          </Box>
+          <Button variant="contained" fullWidth size="large" onClick={handleSaveReserveTime}
+            disabled={!isReserveEditHourValid || !isReserveEditMinuteValid}
+            sx={{ borderRadius: '12px' }}
+          >
+            저장
+          </Button>
+        </Drawer>
+
+        {/* 2. 스마트 팁 — 단식 중이면 숨김 */}
+        {!isFastingActive && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Lightbulb size={16} color={F_ACCENT} style={{ flexShrink: 0 }} />
+            <Typography sx={{ fontSize: '14px', color: F_TEXT, lineHeight: '21px' }}>{smartTip}</Typography>
+          </Box>
+        )}
+
+        {/* 1순위. 단식 인포 카드 — 단식 중일 때만 */}
+        {isFastingActive && (() => {
+          const info = getFastingInfoByElapsed(fastingElapsedMs);
+          return (
+            <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: '10px' }}>
+                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: F_MUTED }}>지금 내 몸은</Typography>
+              </Box>
+              <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_TEXT, mb: '6px', lineHeight: '22px' }}>
+                {info.title}
+              </Typography>
+              <Typography sx={{ fontSize: '13px', color: F_MUTED, lineHeight: '20px' }}>
+                {info.body}
+              </Typography>
+            </Box>
+          );
+        })()}
+
+        {/* 2순위. 광고 카드 — 단식 중일 때만 */}
+        {isFastingActive && (
+          <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
+            <Typography sx={{ fontSize: '12px', fontWeight: 600, color: F_MUTED, mb: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>단식 후 추천</Typography>
+            <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_TEXT, mb: '6px', lineHeight: '22px' }}>
+              단식 종료 후 첫 식사, 뭘 먹을까요?
+            </Typography>
+            <Typography sx={{ fontSize: '13px', color: F_MUTED, lineHeight: '20px', mb: '14px' }}>
+              공복 직후엔 소화 부담이 적은 유산균 음료나 견과류로 시작하면 위장 부담 없이 영양을 보충할 수 있어요.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {['유산균 음료', '견과류 믹스', '단백질 쉐이크'].map(item => (
+                <Box key={item} sx={{ px: '8px', py: '4px', borderRadius: '16px', border: `1px solid ${F_BORDER}`, bgcolor: 'rgba(48,158,255,0.1)' }}>
+                  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: F_ACCENT }}>{item}</Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* 단식 진행중 카드 — 단식 중일 때만 표시 */}
+        {isFastingActive && currentSession && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_ACCENT}55`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
+            {/* 헤더 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: '16px' }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: F_ACCENT }} />
+              <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_ACCENT }}>단식 진행중</Typography>
+            </Box>
+            {/* 유형 + 진행률 */}
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: '8px' }}>
+              <Typography sx={{ fontSize: '22px', fontWeight: 700, color: F_TEXT, lineHeight: 1 }}>
+                {currentSession.config.type}
+              </Typography>
+              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: F_ACCENT }}>
+                {Math.round(Math.min(fastingElapsedMs / (currentSession.config.fastingHours * 3600000), 1) * 100)}%
+              </Typography>
+            </Box>
+            {/* 진행률 바 */}
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(fastingElapsedMs / (currentSession.config.fastingHours * 3600000), 1) * 100}
+              sx={{ borderRadius: '4px', height: '8px', mb: '14px', bgcolor: F_BORDER, '& .MuiLinearProgress-bar': { bgcolor: F_ACCENT } }}
+            />
+            {/* 시작/종료 시각 */}
+            <Typography sx={{ fontSize: '13px', color: F_MUTED, mb: '16px' }}>
+              {formatWallClock(new Date(currentSession.fastingStartTime))} 시작 · {formatWallClock(new Date(currentSession.fastingStartTime + currentSession.config.fastingHours * 3600000))} 종료
+            </Typography>
+            {/* 타이머 보기 버튼 */}
+            <Button variant="contained" fullWidth size="large"
+              onClick={onGoToFasting}
+              sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '15px', fontWeight: 700, color: '#fff', '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
+            >
+              타이머 보기 →
+            </Button>
+          </Box>
+        )}
+
+        {/* 3. 바로 시작 카드 — 예약/단식 중이면 숨김 */}
+        {!isReserved && !isFastingActive && (
+        <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
+          {/* 단식 유형 */}
+          <Typography sx={{ fontSize: '12px', color: F_MUTED, mb: '6px' }}>단식 유형</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
             <Box
-              onClick={e => {
-                const select = (e.currentTarget as HTMLElement).querySelector('select');
-                select?.click();
-              }}
-              sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+              onClick={e => (e.currentTarget as HTMLElement).querySelector('select')?.click()}
+              sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
             >
-              <Typography sx={{ fontSize: '24px', fontWeight: 800, color: 'white', lineHeight: 1 }}>
+              <Typography sx={{ fontSize: '22px', fontWeight: 700, color: F_TEXT, lineHeight: 1 }}>
                 {selectedType}
               </Typography>
-              <KeyboardArrowDownRoundedIcon sx={{ fontSize: '20px', color: 'white', mt: '1px' }} />
+              <KeyboardArrowDownRoundedIcon sx={{ fontSize: '18px', color: F_MUTED }} />
               <Box
                 component="select"
                 value={selectedType}
@@ -454,29 +833,80 @@ function HomeMode({
                 {ALL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </Box>
             </Box>
-            <Typography sx={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', textAlign: 'right', maxWidth: '180px', lineHeight: '18px' }}>
+            <Typography sx={{ fontSize: '14px', color: F_MUTED, textAlign: 'right', maxWidth: '180px', lineHeight: '18px' }}>
               {formatEndTime(config.fastingHours)}
             </Typography>
           </Box>
           <Button variant="contained" fullWidth size="large"
             onClick={() => onStartFastingDirect(config)}
-            sx={{ borderRadius: '12px', bgcolor: PRIMARY_BTN, boxShadow: 'none', fontSize: '16px', fontWeight: 700, '&:hover': { bgcolor: PRIMARY_DARK, boxShadow: 'none' } }}
+            sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '16px', fontWeight: 700, color: '#fff', '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
           >
             바로 시작
           </Button>
         </Box>
+        )}
 
-        {/* 예약 카드 */}
-        <Box onClick={() => { setReserveOpen(true); setReserveStep(1); }}
-          sx={{ py: '24px', borderRadius: '16px', bgcolor: 'white', boxShadow: CARD_SHADOW, cursor: 'pointer', '&:active': { opacity: 0.85 } }}
-        >
-          <Box sx={{ mx: '24px' }}>
-            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: PRIMARY, lineHeight: '24px', mb: '6px' }}>
-              단식 시간을 예약할게요
+        {/* 예약 카드 — 예약/단식 중이면 숨김 */}
+        {!isReserved && !isFastingActive && (
+          <Box sx={{ borderRadius: '16px', bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)' }}>
+            <Box sx={{ m: '20px' }}>
+              <Typography sx={{ fontSize: '18px', fontWeight: 700, color: F_TEXT, lineHeight: '24px', mb: '6px' }}>
+                단식 시간을 예약할게요
+              </Typography>
+              <Typography sx={{ fontSize: '14px', color: F_MUTED, lineHeight: '18px', mb: '16px' }}>
+                오늘 식사가 더 남았다면, 식사 마칠 시간을 입력해요
+              </Typography>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<AccessTimeRoundedIcon />}
+                onClick={() => { setReserveOpen(true); setReserveStep(1); }}
+                sx={{
+                  borderRadius: '12px',
+                  borderColor: F_BORDER,
+                  color: F_TEXT,
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  py: '12px',
+                  '&:hover': { borderColor: F_ACCENT, color: F_ACCENT, bgcolor: 'rgba(48,158,255,0.08)' },
+                }}
+              >
+                예약하기
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* 주간 성취 달력 — 항상 맨 하단 */}
+        <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', mb: '16px' }}>
+            <Flame size={16} color={F_ACCENT} />
+            <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_TEXT }}>
+              {streak > 0 ? `${streak}일 연속 성공!` : '연속 달성기록'}
             </Typography>
-            <Typography sx={{ fontSize: '13px', color: SUB_COLOR, lineHeight: '18px' }}>
-              오늘 식사가 아직이라면, 식사 마칠 시간을 입력해요
-            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            {last7Days.map((day, i) => (
+              <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                <Typography sx={{ fontSize: '12px', fontWeight: 500, color: day.isToday ? F_ACCENT : F_MUTED }}>
+                  {day.isToday ? '오늘' : day.label}
+                </Typography>
+                <Box sx={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: day.hasSuccess ? `${F_ACCENT}22` : day.hasRecord ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  border: `1.5px solid ${day.hasSuccess ? F_ACCENT : day.isToday ? F_MUTED : 'rgba(255,255,255,0.12)'}`,
+                }}>
+                  {day.hasSuccess
+                    ? <Flame size={13} color={F_ACCENT} />
+                    : day.hasRecord
+                      ? <Typography sx={{ fontSize: '12px', color: F_MUTED }}>✗</Typography>
+                      : day.isToday
+                        ? <Typography sx={{ fontSize: '10px', color: F_MUTED }}>·</Typography>
+                        : null}
+                </Box>
+              </Box>
+            ))}
           </Box>
         </Box>
       </Box>
@@ -670,43 +1100,143 @@ function HomeMode({
         )}
       </Drawer>
     </Box>
+    </>
   );
 }
 
 // ────────────────────────────────────────────────────────────
-// 통합 HomeScreen (모드 전환)
+// 통합 HomeScreen — 좌우 스와이프 구조
 // ────────────────────────────────────────────────────────────
 export function HomeScreen({
   currentPhase, currentSession,
-  totalCompletedSessions, statusMessage,
+  totalCompletedSessions, statusMessage, defaultFastingType, recentHistory,
   onStartFastingDirect, onStartFastingFromPast, onReserveFasting,
-  onEndFasting, onResetToSetup, onUpdateStartTime, getCurrentStage,
+  onEndFasting, onResetToSetup, onUpdateStartTime,
+  onUpdateReservedStart, onUpdateReservedConfig, getCurrentStage,
 }: HomeScreenProps) {
   const isFasting = currentPhase === 'fasting' && !!currentSession;
+  const bgImage = FASTING_BGS[Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % FASTING_BGS.length];
+
+  // scroll-snap 컨테이너 ref + 현재 페이지 tracking
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+
+  // 단식 시작 → 단식 페이지(1)로, 종료 → 홈(0)으로 자동 이동
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const target = isFasting ? 1 : 0;
+    el.scrollTo({ left: target * window.innerWidth, behavior: 'smooth' });
+    setPageIndex(target);
+  }, [isFasting]);
+
+  const goToFasting = () => {
+    scrollRef.current?.scrollTo({ left: window.innerWidth, behavior: 'smooth' });
+    setPageIndex(1);
+  };
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / window.innerWidth);
+    setPageIndex(idx);
+  };
+
+  const INDICATOR_BOTTOM = TAB_BAR_HEIGHT + 10;
 
   return (
-    <AnimatePresence mode="wait">
-      {isFasting && currentSession ? (
-        <motion.div key="fasting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ minHeight: '100dvh' }}>
-          <FastingMode
-            session={currentSession}
-            onEndFasting={onEndFasting}
-            onResetToSetup={onResetToSetup}
-            onUpdateStartTime={onUpdateStartTime}
-            getCurrentStage={getCurrentStage}
-          />
-        </motion.div>
-      ) : (
-        <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+    <>
+      {/* 배경 */}
+      <Box sx={{ position: 'fixed', inset: 0, backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }} />
+      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(17,29,41,0.85)', zIndex: 0 }} />
+
+      {/* scroll-snap 컨테이너 */}
+      <Box
+        ref={scrollRef}
+        onScroll={handleScroll}
+        sx={{
+          position: 'fixed', inset: 0, zIndex: 1,
+          display: 'flex',
+          overflowX: isFasting ? 'scroll' : 'hidden',
+          overflowY: 'hidden',
+          scrollSnapType: isFasting ? 'x mandatory' : 'none',
+          WebkitOverflowScrolling: 'touch',
+          // 스크롤바 숨기기
+          '&::-webkit-scrollbar': { display: 'none' },
+          scrollbarWidth: 'none',
+        }}
+      >
+        {/* 페이지 0: 홈 */}
+        <Box sx={{
+          width: '100vw', flexShrink: 0,
+          scrollSnapAlign: 'start',
+          overflowY: 'auto', height: '100%',
+        }}>
           <HomeMode
+            currentPhase={currentPhase}
+            currentSession={currentSession}
             totalCompletedSessions={totalCompletedSessions}
             statusMessage={statusMessage}
+            defaultFastingType={defaultFastingType}
+            recentHistory={recentHistory}
             onStartFastingDirect={onStartFastingDirect}
             onStartFastingFromPast={onStartFastingFromPast}
             onReserveFasting={onReserveFasting}
+            onCancelReservation={onResetToSetup}
+            onUpdateReservedStart={onUpdateReservedStart}
+            onUpdateReservedConfig={onUpdateReservedConfig}
+            onGoToFasting={goToFasting}
           />
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </Box>
+
+        {/* 페이지 1: 단식 */}
+        {isFasting && currentSession && (
+          <Box sx={{
+            width: '100vw', flexShrink: 0,
+            scrollSnapAlign: 'start',
+            overflowY: 'auto', height: '100%',
+          }}>
+            <FastingMode
+              session={currentSession}
+              onEndFasting={onEndFasting}
+              onCancelFasting={onResetToSetup}
+              onUpdateStartTime={onUpdateStartTime}
+              getCurrentStage={getCurrentStage}
+            />
+          </Box>
+        )}
+      </Box>
+
+      {/* 페이지 indicator */}
+      <AnimatePresence>
+        {isFasting && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            style={{
+              position: 'fixed',
+              bottom: INDICATOR_BOTTOM,
+              left: 0, right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 6,
+              zIndex: 20,
+              pointerEvents: 'none',
+            }}
+          >
+            {[0, 1].map(i => (
+              <Box key={i} sx={{
+                width: pageIndex === i ? 16 : 6,
+                height: 6,
+                borderRadius: '3px',
+                bgcolor: pageIndex === i ? F_ACCENT : 'rgba(255,255,255,0.3)',
+                transition: 'width 0.25s ease, background-color 0.25s ease',
+              }} />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

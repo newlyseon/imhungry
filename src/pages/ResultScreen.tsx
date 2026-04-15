@@ -6,7 +6,7 @@ import { Clock, Flame, TrendingUp, HeartCrack, ExternalLink } from 'lucide-react
 import { FastingSession } from '@/hooks/useFastingStore';
 import { formatDuration, estimateCalories } from '@/lib/formatTime';
 
-const PRIMARY = '#00498D';
+const PRIMARY = '#006ACD';
 const CARD_SHADOW = '0px 7px 14px -6px rgba(0,0,0,0.08)';
 const SUB_COLOR = '#9FABB7';
 
@@ -91,7 +91,7 @@ export function ResultScreen({ session, totalCompletedSessions, onGoHome }: Resu
               <Box sx={{ py: '20px', borderRadius: '16px', bgcolor: 'white', boxShadow: CARD_SHADOW, textAlign: 'center' }}>
                 <Box sx={{ mx: '12px' }}>
                   <stat.Icon size={18} style={{ margin: '0 auto 6px', color: PRIMARY }} />
-                  <Typography sx={{ fontSize: '11px', color: SUB_COLOR, display: 'block', mb: '4px' }}>
+                  <Typography sx={{ fontSize: '12px', color: SUB_COLOR, display: 'block', mb: '4px' }}>
                     {stat.label}
                   </Typography>
                   <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#000' }}>

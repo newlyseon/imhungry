@@ -21,7 +21,7 @@ export function CircleProgress({
 
   const strokeColor = colorClass === 'fasting'
     ? '#309EFF'
-    : '#00498D';
+    : '#006ACD';
 
   const trackColor = colorClass === 'fasting'
     ? 'rgba(255,255,255,0.10)'

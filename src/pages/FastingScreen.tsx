@@ -207,7 +207,7 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
                     />
                     <Typography
                       sx={{
-                        fontSize: '10px', textAlign: 'center', lineHeight: 1.3,
+                        fontSize: '11px', textAlign: 'center', lineHeight: 1.3,
                         color: isActive ? fastingAccent : fastingMuted,
                         fontWeight: isActive ? 700 : 400,
                       }}
@@ -242,7 +242,7 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
           onClick={openEditTime}
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', py: '12px' }}
         >
-          <Typography sx={{ fontSize: '11px', color: fastingMuted, mb: '4px', fontWeight: 600 }}>시작</Typography>
+          <Typography sx={{ fontSize: '12px', color: fastingMuted, mb: '4px', fontWeight: 600 }}>시작</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Typography sx={{ fontSize: '16px', fontWeight: 700, color: fastingText }}>
               {formatWallClock(new Date(session.fastingStartTime))}
@@ -259,7 +259,7 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
           onClick={handleEndClick}
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', py: '12px' }}
         >
-          <Typography sx={{ fontSize: '11px', color: fastingMuted, mb: '4px', fontWeight: 600 }}>종료</Typography>
+          <Typography sx={{ fontSize: '12px', color: fastingMuted, mb: '4px', fontWeight: 600 }}>종료</Typography>
           <Typography sx={{ fontSize: '16px', fontWeight: 700, color: isComplete ? fastingAccent : fastingText }}>
             {formatWallClock(new Date(targetTime))}
           </Typography>
