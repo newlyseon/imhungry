@@ -932,7 +932,7 @@ function HomeMode({
           return (
             <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: '10px' }}>
-                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: F_MUTED }}>지금 내 몸은</Typography>
+                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: F_MUTED }}>지금 내 몸은</Typography>
               </Box>
               <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_TEXT, mb: '6px', lineHeight: '22px' }}>
                 {info.title}
@@ -947,7 +947,7 @@ function HomeMode({
         {/* 2순위. 광고 카드 — 단식 중일 때만 */}
         {isFastingActive && (
           <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
-            <Typography sx={{ fontSize: '12px', fontWeight: 600, color: F_MUTED, mb: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>단식 후 추천</Typography>
+            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: F_MUTED, mb: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>단식 후 추천</Typography>
             <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_TEXT, mb: '6px', lineHeight: '22px' }}>
               단식 종료 후 첫 식사, 뭘 먹을까요?
             </Typography>
@@ -1081,10 +1081,18 @@ function HomeMode({
           <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, borderRadius: '16px', p: '20px', backdropFilter: 'blur(6px)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: '14px' }}>
               <Typography sx={{ fontSize: '14px', fontWeight: 700, color: F_TEXT }}>이번 주</Typography>
-              <Typography sx={{ fontSize: '12px', color: F_MUTED }}>
-                {weeklyCompletedCount} / {weeklyScheduledCount}일 달성
-                {isFastingActive ? ' · 오늘 진행 중' : ''}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Typography sx={{ fontSize: '12px', color: F_MUTED }}>
+                  {weeklyCompletedCount} / {weeklyScheduledCount}일 달성
+                  {isFastingActive ? ' · 오늘 진행 중' : ''}
+                </Typography>
+                <Button variant="text" size="small"
+                  onClick={onCancelRecurringSchedule}
+                  sx={{ color: F_MUTED, fontSize: '12px', p: 0, minWidth: 0, lineHeight: 1 }}
+                >
+                  반복 중단
+                </Button>
+              </Box>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               {weeklyDays.map((d, i) => (
@@ -1111,12 +1119,6 @@ function HomeMode({
                 </Box>
               ))}
             </Box>
-            <Button variant="text" size="small"
-              onClick={onCancelRecurringSchedule}
-              sx={{ mt: '12px', color: F_MUTED, fontSize: '12px', p: 0, minWidth: 0 }}
-            >
-              반복 중단
-            </Button>
           </Box>
         )}
 
