@@ -379,9 +379,9 @@ function FastingMode({
               color: F_MUTED,
               fontSize: '15px',
               fontWeight: 700,
-              py: '14px',
               px: '20px',
               flexShrink: 0,
+              '&&': { height: '50px' },
               '&:hover': { borderColor: F_BORDER, bgcolor: 'rgba(255,255,255,0.08)' },
             }}
           >
@@ -398,7 +398,7 @@ function FastingMode({
               color: F_TEXT,
               fontSize: '15px',
               fontWeight: 700,
-              py: '14px',
+              '&&': { height: '50px' },
               '&:hover': { bgcolor: isComplete ? '#1a8de0' : 'rgba(48,158,255,0.28)', boxShadow: 'none' },
             }}
           >
@@ -722,6 +722,39 @@ function HomeMode({
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
+        {/* 단식 진행중 카드 — 1순위 최상단 */}
+        {isFastingActive && currentSession && (
+          <Box
+            onClick={onGoToFasting}
+            sx={{ bgcolor: '#006ACD', borderRadius: '16px', p: '20px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            {/* 헤더 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: '16px' }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.8)' }} />
+              <Typography sx={{ fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>단식 진행중</Typography>
+            </Box>
+            {/* 유형 + 진행률 */}
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: '8px' }}>
+              <Typography sx={{ fontSize: '22px', fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+                {currentSession.config.type}
+              </Typography>
+              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+                {Math.round(Math.min(fastingElapsedMs / (currentSession.config.fastingHours * 3600000), 1) * 100)}%
+              </Typography>
+            </Box>
+            {/* 진행률 바 */}
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(fastingElapsedMs / (currentSession.config.fastingHours * 3600000), 1) * 100}
+              sx={{ borderRadius: '4px', height: '8px', mb: '14px', bgcolor: 'rgba(255,255,255,0.25)', '& .MuiLinearProgress-bar': { bgcolor: '#fff' } }}
+            />
+            {/* 시작/종료 시각 */}
+            <Typography sx={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+              {formatWallClock(new Date(currentSession.fastingStartTime))} 시작 · {formatWallClock(new Date(currentSession.fastingStartTime + currentSession.config.fastingHours * 3600000))} 종료
+            </Typography>
+          </Box>
+        )}
+
         {/* 반복 단식 — 오늘의 단식 카드 (최상단) */}
         {hasRecurring && !isReserved && !isFastingActive && isTodayFastingDay && !isTodaySkipped && recurringSchedule && (
           <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_ACCENT}55`, borderRadius: '16px', p: '20px', backdropFilter: 'blur(6px)' }}>
@@ -931,43 +964,6 @@ function HomeMode({
           </Box>
         )}
 
-        {/* 단식 진행중 카드 — 단식 중일 때만 표시 */}
-        {isFastingActive && currentSession && (
-          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_ACCENT}55`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
-            {/* 헤더 */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: '16px' }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: F_ACCENT }} />
-              <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_ACCENT }}>단식 진행중</Typography>
-            </Box>
-            {/* 유형 + 진행률 */}
-            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: '8px' }}>
-              <Typography sx={{ fontSize: '22px', fontWeight: 700, color: F_TEXT, lineHeight: 1 }}>
-                {currentSession.config.type}
-              </Typography>
-              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: F_ACCENT }}>
-                {Math.round(Math.min(fastingElapsedMs / (currentSession.config.fastingHours * 3600000), 1) * 100)}%
-              </Typography>
-            </Box>
-            {/* 진행률 바 */}
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(fastingElapsedMs / (currentSession.config.fastingHours * 3600000), 1) * 100}
-              sx={{ borderRadius: '4px', height: '8px', mb: '14px', bgcolor: F_BORDER, '& .MuiLinearProgress-bar': { bgcolor: F_ACCENT } }}
-            />
-            {/* 시작/종료 시각 */}
-            <Typography sx={{ fontSize: '13px', color: F_MUTED, mb: '16px' }}>
-              {formatWallClock(new Date(currentSession.fastingStartTime))} 시작 · {formatWallClock(new Date(currentSession.fastingStartTime + currentSession.config.fastingHours * 3600000))} 종료
-            </Typography>
-            {/* 타이머 보기 버튼 */}
-            <Button variant="contained" fullWidth size="large"
-              onClick={onGoToFasting}
-              sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '15px', fontWeight: 700, color: '#fff', '&&': { height: '50px' }, '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
-            >
-              타이머 보기 →
-            </Button>
-          </Box>
-        )}
-
         {/* 3. 바로 시작 카드 — 예약/단식 중이면 숨김 */}
         {!isReserved && !isFastingActive && (
         <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
@@ -1018,7 +1014,7 @@ function HomeMode({
         {/* 예약 카드 — 예약/단식 중이면 숨김 */}
         {!isReserved && !isFastingActive && (
           <Box sx={{ borderRadius: '16px', bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)' }}>
-            <Box sx={{ m: '20px' }}>
+            <Box sx={{ mx: '20px', mt: '20px', mb: '16px' }}>
               <Typography sx={{ fontSize: '18px', fontWeight: 700, color: F_TEXT, lineHeight: '24px', mb: '6px' }}>
                 단식 시간을 예약할게요
               </Typography>
@@ -1322,7 +1318,7 @@ function HomeMode({
                 <Typography sx={{ fontSize: '16px', fontWeight: 700, color: PRIMARY, mt: '4px' }}>{formatWallClockWithDay(reserveNextMeal)}</Typography>
               </InfoCard>
             )}
-            <Button variant="contained" fullWidth size="large" onClick={() => setReserveStep(3)} sx={{ borderRadius: '12px', mt: '24px' }}>다음</Button>
+            <Button variant="contained" fullWidth size="large" onClick={() => setReserveStep(3)} sx={{ borderRadius: '12px', mt: '24px', '&&': { height: '50px' } }}>다음</Button>
           </>
         )}
 

@@ -361,7 +361,7 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
           <Button
             variant="text" size="large"
             onClick={() => { onResetToSetup(); setShowNudge(false); }}
-            sx={{ flex: 1, borderRadius: '12px', border: `1px solid ${fastingBorder}`, color: fastingMuted, '&:hover': { bgcolor: 'transparent', color: fastingText } }}
+            sx={{ flex: 1, borderRadius: '12px', border: `1px solid ${fastingBorder}`, color: fastingMuted, '&&': { height: '50px' }, '&:hover': { bgcolor: 'transparent', color: fastingText } }}
           >
             그래도 종료
           </Button>
