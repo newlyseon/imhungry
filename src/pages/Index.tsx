@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useFastingStore } from '@/hooks/useFastingStore';
 import { HomeScreen } from '@/pages/HomeScreen';
-import { ReservedScreen } from '@/pages/ReservedScreen';
 import { ResultScreen } from '@/pages/ResultScreen';
 import { OnboardingScreen } from '@/pages/OnboardingScreen';
 import { FastingTypeScreen } from '@/pages/FastingTypeScreen';
@@ -61,6 +60,11 @@ const Index = () => {
         onUpdateReservedStart={store.updateReservedStart}
         onUpdateReservedConfig={store.updateReservedConfig}
         getCurrentStage={store.getCurrentStage}
+        recurringSchedule={store.recurringSchedule}
+        skippedDates={store.skippedDates}
+        onSetRecurringSchedule={store.setRecurringSchedule}
+        onCancelRecurringSchedule={store.cancelRecurringSchedule}
+        onSkipToday={store.skipToday}
       />
     );
   };

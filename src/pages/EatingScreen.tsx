@@ -138,7 +138,7 @@ export function EatingScreen({ session, onStartFasting, onResetToSetup }: Eating
           fullWidth
           onClick={onStartFasting}
           size="large"
-          sx={{ borderRadius: '12px' }}
+          sx={{ borderRadius: '12px', '&&': { height: '50px' } }}
         >
           지금 바로 단식 시작
         </Button>

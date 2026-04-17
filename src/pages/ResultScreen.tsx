@@ -147,7 +147,7 @@ export function ResultScreen({ session, totalCompletedSessions, onGoHome }: Resu
           bgcolor: 'background.default',
         }}
       >
-        <Button variant="contained" fullWidth size="large" onClick={onGoHome} sx={{ borderRadius: '12px' }}>
+        <Button variant="contained" fullWidth size="large" onClick={onGoHome} sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>
           홈으로 돌아가기
         </Button>
       </Box>

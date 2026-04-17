@@ -148,7 +148,7 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
       <Box sx={{ pt: '24px' }}>
         <Button variant="outlined" fullWidth size="large"
           onClick={onResetToSetup}
-          sx={{ borderRadius: '12px', borderColor: PRIMARY, color: PRIMARY }}>
+          sx={{ borderRadius: '12px', borderColor: PRIMARY, color: PRIMARY, '&&': { height: '50px' } }}>
           예약 취소
         </Button>
       </Box>
@@ -193,7 +193,7 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
         )}
         <Button variant="contained" fullWidth size="large" disabled={!newScheduledDate}
           onClick={() => { if (newScheduledDate) { onUpdateReservedStart(newScheduledDate); setShowChangeTime(false); } }}
-          sx={{ borderRadius: '12px', mt: '24px' }}>
+          sx={{ borderRadius: '12px', mt: '24px', '&&': { height: '50px' } }}>
           시간 변경하기
         </Button>
       </Drawer>
@@ -218,7 +218,7 @@ export function ReservedScreen({ session, onResetToSetup, onUpdateReservedStart,
         </ToggleButtonGroup>
         <Button variant="contained" fullWidth size="large"
           onClick={() => { onUpdateReservedConfig(FASTING_PRESETS[selectedRoutine]); setShowChangeRoutine(false); }}
-          sx={{ borderRadius: '12px' }}>
+          sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>
           루틴 변경하기
         </Button>
       </Drawer>

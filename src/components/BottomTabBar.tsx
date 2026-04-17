@@ -57,19 +57,15 @@ export function BottomTabBar({ activeTab, onTabChange }: Props) {
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <Box
-              sx={{
-                width: 24,
-                height: 24,
-                backgroundColor: active ? PRIMARY : SUB_COLOR,
-                maskImage: `url(${icon})`,
-                maskRepeat: 'no-repeat',
-                maskPosition: 'center',
-                maskSize: 'contain',
-                WebkitMaskImage: `url(${icon})`,
-                WebkitMaskRepeat: 'no-repeat',
-                WebkitMaskPosition: 'center',
-                WebkitMaskSize: 'contain',
+            <img
+              src={icon}
+              width={24}
+              height={24}
+              alt={label}
+              style={{
+                filter: active
+                  ? 'none'
+                  : 'brightness(0) saturate(100%) invert(71%) sepia(8%) saturate(590%) hue-rotate(172deg) brightness(94%) contrast(89%)',
               }}
             />
             <Typography

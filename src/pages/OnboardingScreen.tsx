@@ -212,7 +212,7 @@ export const OnboardingScreen = ({ onComplete }: Props) => {
             size="large"
             disabled={step === 1 && name.trim().length === 0}
             onClick={() => setStep(step === 1 ? 2 : 3)}
-            sx={{ borderRadius: '12px' }}
+            sx={{ borderRadius: '12px', '&&': { height: '50px' } }}
           >
             다음
           </Button>

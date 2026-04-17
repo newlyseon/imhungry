@@ -2,6 +2,23 @@ import { useState, useEffect, useCallback } from 'react';
 
 export type FastingType = '12:12' | '13:11' | '14:10' | '16:8' | '18:6' | '20:4' | 'custom';
 export type AppPhase = 'onboarding' | 'home' | 'reserved' | 'eating' | 'fasting' | 'result';
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=일, 1=월, ..., 6=토
+
+export interface RecurringSchedule {
+  pattern: Exclude<FastingType, 'custom'>;
+  days: DayOfWeek[];
+  lastMealHour: number;
+  lastMealMinute: number;
+  notifications: {
+    start: boolean;
+    eating: boolean;
+    midpoint: boolean;
+  };
+}
+
+export function toISODate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
 export interface UserProfile {
   name: string;
@@ -65,6 +82,8 @@ interface FastingState {
   onboardingCompleted: boolean;
   userProfile: UserProfile | null;
   defaultFastingType: Exclude<FastingType, 'custom'>;
+  recurringSchedule: RecurringSchedule | null;
+  skippedDates: string[];
 }
 
 const STORAGE_KEY = 'fasting-app-state';
@@ -79,6 +98,8 @@ function loadState(): FastingState {
       if (parsed.onboardingCompleted === undefined) parsed.onboardingCompleted = false;
       if (parsed.userProfile === undefined) parsed.userProfile = null;
       if (parsed.defaultFastingType === undefined) parsed.defaultFastingType = '16:8';
+      if (parsed.recurringSchedule === undefined) parsed.recurringSchedule = null;
+      if (!parsed.skippedDates) parsed.skippedDates = [];
       // 온보딩 미완료 시 항상 온보딩으로, 완료 시 저장된 phase 복원 (단, onboarding이면 home으로)
       const phase = !parsed.onboardingCompleted
         ? 'onboarding'
@@ -94,6 +115,8 @@ function loadState(): FastingState {
     onboardingCompleted: false,
     userProfile: null,
     defaultFastingType: '16:8',
+    recurringSchedule: null,
+    skippedDates: [],
   };
 }
 
@@ -271,6 +294,22 @@ export function useFastingStore() {
     });
   }, []);
 
+  const setRecurringSchedule = useCallback((schedule: RecurringSchedule) => {
+    setState(prev => ({ ...prev, recurringSchedule: schedule }));
+  }, []);
+
+  const cancelRecurringSchedule = useCallback(() => {
+    setState(prev => ({ ...prev, recurringSchedule: null, skippedDates: [] }));
+  }, []);
+
+  const skipToday = useCallback(() => {
+    const today = toISODate(new Date());
+    setState(prev => ({
+      ...prev,
+      skippedDates: prev.skippedDates.includes(today) ? prev.skippedDates : [...prev.skippedDates, today],
+    }));
+  }, []);
+
   const goHome = useCallback(() => {
     setState(prev => ({ ...prev, phase: 'home' }));
   }, []);
@@ -344,5 +383,8 @@ export function useFastingStore() {
     updateReservedStart,
     updateReservedConfig,
     getCurrentStage,
+    setRecurringSchedule,
+    cancelRecurringSchedule,
+    skipToday,
   };
 }

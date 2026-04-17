@@ -324,6 +324,7 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
           disabled={!isHourValid || !isMinuteValid}
           sx={{
             borderRadius: '12px', border: `1px solid ${fastingBorder}`, color: 'white', bgcolor: fastingBg,
+            '&&': { height: '50px' },
             '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', border: `1px solid ${fastingBorder}` },
             '&.Mui-disabled': { opacity: 0.4, color: 'white', border: `1px solid ${fastingBorder}` },
           }}
@@ -353,7 +354,7 @@ export function FastingScreen({ session, onEndFasting, onResetToSetup, onUpdateS
           <Button
             variant="outlined" size="large"
             onClick={() => setShowNudge(false)}
-            sx={{ flex: 1, borderRadius: '12px', border: `1px solid ${fastingBorder}`, color: 'white', bgcolor: fastingBg, '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', border: `1px solid ${fastingBorder}` } }}
+            sx={{ flex: 1, borderRadius: '12px', border: `1px solid ${fastingBorder}`, color: 'white', bgcolor: fastingBg, '&&': { height: '50px' }, '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', border: `1px solid ${fastingBorder}` } }}
           >
             계속 할게요
           </Button>

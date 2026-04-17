@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -16,12 +17,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import { Flame, Lightbulb } from 'lucide-react';
 import { CircleProgress } from '@/components/CircleProgress';
 import { useCountdown, useElapsed } from '@/hooks/useCountdown';
 import {
   FastingConfig, FastingType, FastingSession, AppPhase,
   FASTING_PRESETS, FASTING_STAGES, FastingStage, SessionRecord,
+  RecurringSchedule, DayOfWeek, toISODate,
 } from '@/hooks/useFastingStore';
 import { formatWallClock, formatWallClockWithDay, formatTimerDisplay } from '@/lib/formatTime';
 
@@ -62,7 +65,7 @@ function formatEndTime(fastingHours: number): string {
   const ampm = h < 12 ? '오전' : '오후';
   const displayH = h % 12 === 0 ? 12 : h % 12;
   const displayM = m > 0 ? ` ${m}분` : '';
-  return `${isToday ? '오늘' : '내일'} ${ampm} ${displayH}시${displayM}에 종료돼요`;
+  return `${isToday ? '오늘' : '내일'} ${ampm} ${displayH}시${displayM} 종료`;
 }
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -151,6 +154,11 @@ export interface HomeScreenProps {
   onUpdateReservedStart: (newStart: Date) => void;
   onUpdateReservedConfig: (config: FastingConfig) => void;
   getCurrentStage: () => FastingStage | null;
+  recurringSchedule: RecurringSchedule | null;
+  skippedDates: string[];
+  onSetRecurringSchedule: (schedule: RecurringSchedule) => void;
+  onCancelRecurringSchedule: () => void;
+  onSkipToday: () => void;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -434,7 +442,7 @@ function FastingMode({
           </FormControl>
         </Box>
         <Button variant="contained" fullWidth size="large" onClick={handleSaveStartTime} disabled={!isHourValid || !isMinuteValid}
-          sx={{ borderRadius: '12px' }}
+          sx={{ borderRadius: '12px', '&&': { height: '50px' } }}
         >
           저장
         </Button>
@@ -452,10 +460,10 @@ function FastingMode({
         </Typography>
         <Box sx={{ display: 'flex', gap: '12px' }}>
           <Button variant="contained" size="large" onClick={() => setShowNudge(false)}
-            sx={{ flex: 1, borderRadius: '12px' }}
+            sx={{ flex: 1, borderRadius: '12px', '&&': { height: '50px' } }}
           >계속 할게요</Button>
           <Button variant="outlined" size="large" onClick={() => { onEndFasting(); setShowNudge(false); }}
-            sx={{ flex: 1, borderRadius: '12px' }}
+            sx={{ flex: 1, borderRadius: '12px', '&&': { height: '50px' } }}
           >그래도 종료</Button>
         </Box>
       </Drawer>
@@ -471,6 +479,7 @@ function HomeMode({
   totalCompletedSessions, statusMessage, defaultFastingType, recentHistory,
   onStartFastingDirect, onStartFastingFromPast, onReserveFasting, onCancelReservation,
   onUpdateReservedStart, onUpdateReservedConfig, onGoToFasting,
+  recurringSchedule, skippedDates, onSetRecurringSchedule, onCancelRecurringSchedule, onSkipToday,
 }: {
   currentPhase: AppPhase;
   currentSession: FastingSession | null;
@@ -485,8 +494,14 @@ function HomeMode({
   onUpdateReservedStart: (newStart: Date) => void;
   onUpdateReservedConfig: (config: FastingConfig) => void;
   onGoToFasting?: () => void;
+  recurringSchedule: RecurringSchedule | null;
+  skippedDates: string[];
+  onSetRecurringSchedule: (schedule: RecurringSchedule) => void;
+  onCancelRecurringSchedule: () => void;
+  onSkipToday: () => void;
 }) {
   const [selectedType, setSelectedType] = useState<Exclude<FastingType, 'custom'>>(defaultFastingType);
+  const [typeMenuAnchor, setTypeMenuAnchor] = useState<null | HTMLElement>(null);
   const config = FASTING_PRESETS[selectedType];
 
   const now = new Date();
@@ -601,6 +616,89 @@ function HomeMode({
   const isReserved = currentPhase === 'reserved' && !!currentSession?.reservedFastingStart;
   const isFastingActive = currentPhase === 'fasting' && !!currentSession;
 
+  // ── 반복 단식 설정 ────────────────────────────────────────
+  const [recurringOpen, setRecurringOpen] = useState(false);
+  const [todayFastingMenuAnchor, setTodayFastingMenuAnchor] = useState<null | HTMLElement>(null);
+  const [recurringStep, setRecurringStep] = useState(1);
+  const [rcPattern, setRcPattern] = useState<Exclude<FastingType, 'custom'>>('16:8');
+  const [rcDays, setRcDays] = useState<DayOfWeek[]>([1, 2, 3, 4, 5]);
+  const [rcMealHour, setRcMealHour] = useState('20');
+  const [rcMealMinute, setRcMealMinute] = useState('00');
+  const [rcNotifStart, setRcNotifStart] = useState(true);
+  const [rcNotifEating, setRcNotifEating] = useState(true);
+  const [rcNotifMid, setRcNotifMid] = useState(false);
+
+  const DAY_LABELS: { dow: DayOfWeek; label: string }[] = [
+    { dow: 1, label: '월' }, { dow: 2, label: '화' }, { dow: 3, label: '수' },
+    { dow: 4, label: '목' }, { dow: 5, label: '금' }, { dow: 6, label: '토' }, { dow: 0, label: '일' },
+  ];
+
+  const PATTERN_INFO: { type: Exclude<FastingType, 'custom'>; desc: string; group: string }[] = [
+    { type: '12:12', desc: '수면으로 절반 채워져요', group: '가볍게 시작' },
+    { type: '14:10', desc: '여성·초보자에게 추천', group: '가볍게 시작' },
+    { type: '16:8',  desc: '가장 많이 하는 방식',   group: '표준' },
+    { type: '18:6',  desc: '16:8에 익숙해졌다면',   group: '도전' },
+    { type: '20:4',  desc: '상급자용',               group: '도전' },
+  ];
+
+  const closeRecurring = () => { setRecurringOpen(false); setRecurringStep(1); };
+
+  const handleSaveRecurring = () => {
+    onSetRecurringSchedule({
+      pattern: rcPattern,
+      days: rcDays,
+      lastMealHour: parseInt(rcMealHour),
+      lastMealMinute: parseInt(rcMealMinute),
+      notifications: { start: rcNotifStart, eating: rcNotifEating, midpoint: rcNotifMid },
+    });
+    closeRecurring();
+  };
+
+  // 오늘의 단식 상태 계산
+  const todayISO = toISODate(new Date());
+  const todayDOW = new Date().getDay() as DayOfWeek;
+  const isTodayFastingDay = recurringSchedule ? recurringSchedule.days.includes(todayDOW) : false;
+  const isTodaySkipped = skippedDates.includes(todayISO);
+  const hasRecurring = !!recurringSchedule;
+
+  // 주간 달성 카드 (반복 설정 시)
+  const weeklyDays = useMemo(() => {
+    if (!recurringSchedule) return [];
+    const today = new Date();
+    const dow = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+    monday.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const iso = toISODate(d);
+      const dDow = d.getDay() as DayOfWeek;
+      const isScheduled = recurringSchedule.days.includes(dDow);
+      const isCompleted = recentHistory.some(r => toISODate(new Date(r.timestamp)) === iso && r.isSuccess);
+      const isSkipped = skippedDates.includes(iso);
+      const isToday = iso === todayISO;
+      const isFuture = d.getTime() > today.setHours(23, 59, 59, 999);
+      return { label: DAY_LABELS.find(l => l.dow === dDow)?.label ?? '', isScheduled, isCompleted, isSkipped, isToday, isFuture };
+    });
+  }, [recurringSchedule, recentHistory, skippedDates, todayISO]);
+
+  const weeklyScheduledCount = weeklyDays.filter(d => d.isScheduled).length;
+  const weeklyCompletedCount = weeklyDays.filter(d => d.isCompleted).length;
+
+  // 다음 단식 요일 (쉬는 날 카드용)
+  const nextFastingDayLabel = useMemo(() => {
+    if (!recurringSchedule) return '';
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      if (recurringSchedule.days.includes(d.getDay() as DayOfWeek)) {
+        return DAY_LABELS.find(l => l.dow === (d.getDay() as DayOfWeek))?.label ?? '';
+      }
+    }
+    return '';
+  }, [recurringSchedule]);
+
   // hook은 조건부 호출 불가 — 예약/단식 없을 땐 fallback 값으로 대체
   const reservedTarget = currentSession?.reservedFastingStart ?? (Date.now() + 86400000);
   const { formatted: reserveCountdown } = useCountdown(reservedTarget);
@@ -623,6 +721,66 @@ function HomeMode({
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        {/* 반복 단식 — 오늘의 단식 카드 (최상단) */}
+        {hasRecurring && !isReserved && !isFastingActive && isTodayFastingDay && !isTodaySkipped && recurringSchedule && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_ACCENT}55`, borderRadius: '16px', p: '20px', backdropFilter: 'blur(6px)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '14px' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: F_ACCENT }} />
+                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: F_ACCENT }}>오늘의 단식</Typography>
+              </Box>
+              <IconButton
+                size="small"
+                onClick={(e) => setTodayFastingMenuAnchor(e.currentTarget)}
+                sx={{ color: F_MUTED, p: 0, mx: 0, minWidth: 0, width: 'auto', height: 'auto' }}
+              >
+                <MoreVertRoundedIcon sx={{ fontSize: '24px' }} />
+              </IconButton>
+              <Menu
+                anchorEl={todayFastingMenuAnchor}
+                open={Boolean(todayFastingMenuAnchor)}
+                onClose={() => setTodayFastingMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { borderRadius: '12px', boxShadow: '0px 4px 20px rgba(0,0,0,0.12)', minWidth: '120px' } } }}
+              >
+                <MenuItem
+                  onClick={() => { setTodayFastingMenuAnchor(null); setRecurringOpen(true); setRecurringStep(1); }}
+                  sx={{ fontSize: '15px', fontWeight: 600, py: '10px' }}
+                >
+                  편집
+                </MenuItem>
+                <MenuItem
+                  onClick={() => { setTodayFastingMenuAnchor(null); onCancelRecurringSchedule(); }}
+                  sx={{ fontSize: '15px', fontWeight: 600, py: '10px', color: '#E53935' }}
+                >
+                  삭제
+                </MenuItem>
+              </Menu>
+            </Box>
+            <Typography sx={{ fontSize: '22px', fontWeight: 700, color: F_TEXT, mb: '4px' }}>
+              {recurringSchedule.pattern}
+            </Typography>
+            <Typography sx={{ fontSize: '14px', color: F_MUTED, mb: '16px' }}>
+              오후 {recurringSchedule.lastMealHour}:{String(recurringSchedule.lastMealMinute).padStart(2, '0')} 이후 식사를 마치면 단식이 시작돼요
+            </Typography>
+            <Box sx={{ display: 'flex', gap: '8px' }}>
+              <Button variant="contained" size="large"
+                onClick={() => onStartFastingDirect(FASTING_PRESETS[recurringSchedule.pattern])}
+                sx={{ flex: 1, borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '15px', fontWeight: 700, color: '#fff', '&&': { padding: '14px 24px', height: '50px' }, '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
+              >
+                지금 바로 시작
+              </Button>
+              <Button variant="outlined" size="large"
+                onClick={onSkipToday}
+                sx={{ flexShrink: 0, borderRadius: '12px', borderColor: F_BORDER, color: F_MUTED, fontSize: '15px', fontWeight: 600, '&&': { px: '12px', height: '50px' } }}
+              >
+                오늘 건너뛰기
+              </Button>
+            </Box>
+          </Box>
+        )}
 
         {/* 예약 현황 카드 */}
         {isReserved && currentSession && (
@@ -721,15 +879,15 @@ function HomeMode({
           </Box>
           <Button variant="contained" fullWidth size="large" onClick={handleSaveReserveTime}
             disabled={!isReserveEditHourValid || !isReserveEditMinuteValid}
-            sx={{ borderRadius: '12px' }}
+            sx={{ borderRadius: '12px', '&&': { height: '50px' } }}
           >
             저장
           </Button>
         </Drawer>
 
-        {/* 2. 스마트 팁 — 단식 중이면 숨김 */}
-        {!isFastingActive && (
-          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* 2. 스마트 팁 — 단식 중이거나 반복 예약 있으면 숨김 */}
+        {!isFastingActive && !hasRecurring && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Lightbulb size={16} color={F_ACCENT} style={{ flexShrink: 0 }} />
             <Typography sx={{ fontSize: '14px', color: F_TEXT, lineHeight: '21px' }}>{smartTip}</Typography>
           </Box>
@@ -803,7 +961,7 @@ function HomeMode({
             {/* 타이머 보기 버튼 */}
             <Button variant="contained" fullWidth size="large"
               onClick={onGoToFasting}
-              sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '15px', fontWeight: 700, color: '#fff', '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
+              sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '15px', fontWeight: 700, color: '#fff', '&&': { height: '50px' }, '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
             >
               타이머 보기 →
             </Button>
@@ -817,29 +975,40 @@ function HomeMode({
           <Typography sx={{ fontSize: '12px', color: F_MUTED, mb: '6px' }}>단식 유형</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '16px' }}>
             <Box
-              onClick={e => (e.currentTarget as HTMLElement).querySelector('select')?.click()}
-              sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+              onClick={e => setTypeMenuAnchor(e.currentTarget)}
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
             >
               <Typography sx={{ fontSize: '22px', fontWeight: 700, color: F_TEXT, lineHeight: 1 }}>
                 {selectedType}
               </Typography>
               <KeyboardArrowDownRoundedIcon sx={{ fontSize: '18px', color: F_MUTED }} />
-              <Box
-                component="select"
-                value={selectedType}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value as Exclude<FastingType, 'custom'>)}
-                sx={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
-              >
-                {ALL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </Box>
             </Box>
+            <Menu
+              anchorEl={typeMenuAnchor}
+              open={Boolean(typeMenuAnchor)}
+              onClose={() => setTypeMenuAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+              slotProps={{ paper: { sx: { borderRadius: '12px', boxShadow: '0px 4px 20px rgba(0,0,0,0.12)', minWidth: '120px' } } }}
+            >
+              {ALL_TYPES.map(t => (
+                <MenuItem
+                  key={t}
+                  selected={t === selectedType}
+                  onClick={() => { setSelectedType(t as Exclude<FastingType, 'custom'>); setTypeMenuAnchor(null); }}
+                  sx={{ fontSize: '14px', fontWeight: 600, py: '10px' }}
+                >
+                  {t}
+                </MenuItem>
+              ))}
+            </Menu>
             <Typography sx={{ fontSize: '14px', color: F_MUTED, textAlign: 'right', maxWidth: '180px', lineHeight: '18px' }}>
               {formatEndTime(config.fastingHours)}
             </Typography>
           </Box>
           <Button variant="contained" fullWidth size="large"
             onClick={() => onStartFastingDirect(config)}
-            sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '16px', fontWeight: 700, color: '#fff', '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
+            sx={{ borderRadius: '12px', bgcolor: F_ACCENT, boxShadow: 'none', fontSize: '15px', fontWeight: 700, color: '#fff', '&&': { padding: '14px 24px', height: '50px' }, '&:hover': { bgcolor: '#1a8de0', boxShadow: 'none' } }}
           >
             바로 시작
           </Button>
@@ -859,6 +1028,7 @@ function HomeMode({
               <Button
                 variant="outlined"
                 fullWidth
+                size="large"
                 startIcon={<AccessTimeRoundedIcon />}
                 onClick={() => { setReserveOpen(true); setReserveStep(1); }}
                 sx={{
@@ -867,17 +1037,95 @@ function HomeMode({
                   color: F_TEXT,
                   fontSize: '15px',
                   fontWeight: 700,
-                  py: '12px',
+                  '&&': { padding: '14px 24px', height: '50px' },
                   '&:hover': { borderColor: F_ACCENT, color: F_ACCENT, bgcolor: 'rgba(48,158,255,0.08)' },
                 }}
               >
                 예약하기
               </Button>
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => { setRecurringOpen(true); setRecurringStep(1); }}
+                sx={{ borderRadius: '12px', color: F_MUTED, fontSize: '14px', fontWeight: 400, mt: '4px', py: '8px' }}
+              >
+                반복 설정하기
+              </Button>
             </Box>
           </Box>
         )}
 
-        {/* 주간 성취 달력 — 항상 맨 하단 */}
+        {/* 반복 단식 — 쉬는 날 카드 */}
+        {hasRecurring && !isReserved && !isFastingActive && (!isTodayFastingDay || isTodaySkipped) && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, borderRadius: '16px', p: '20px', backdropFilter: 'blur(6px)' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Box>
+                <Typography sx={{ fontSize: '16px', fontWeight: 700, color: F_TEXT, mb: '6px' }}>오늘은 쉬는 날</Typography>
+                <Typography sx={{ fontSize: '13px', color: F_MUTED, mb: '4px' }}>
+                  이번 주 달성: {weeklyCompletedCount} / {weeklyScheduledCount}일
+                </Typography>
+                {nextFastingDayLabel && (
+                  <Typography sx={{ fontSize: '13px', color: F_MUTED }}>다음 단식: {nextFastingDayLabel}요일</Typography>
+                )}
+              </Box>
+              <Typography sx={{ fontSize: '28px' }}>☕</Typography>
+            </Box>
+            {recurringSchedule && (
+              <Button variant="outlined" fullWidth size="large" onClick={() => onStartFastingDirect(FASTING_PRESETS[recurringSchedule!.pattern])}
+                sx={{ mt: '16px', borderRadius: '12px', borderColor: F_BORDER, color: F_TEXT, fontSize: '14px', fontWeight: 600, '&&': { height: '50px' } }}
+              >
+                그래도 오늘 할게요
+              </Button>
+            )}
+          </Box>
+        )}
+
+        {/* 반복 단식 — 주간 진행 카드 */}
+        {hasRecurring && weeklyDays.length > 0 && (
+          <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, borderRadius: '16px', p: '20px', backdropFilter: 'blur(6px)' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: '14px' }}>
+              <Typography sx={{ fontSize: '14px', fontWeight: 700, color: F_TEXT }}>이번 주</Typography>
+              <Typography sx={{ fontSize: '12px', color: F_MUTED }}>
+                {weeklyCompletedCount} / {weeklyScheduledCount}일 달성
+                {isFastingActive ? ' · 오늘 진행 중' : ''}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              {weeklyDays.map((d, i) => (
+                <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <Typography sx={{ fontSize: '11px', color: d.isToday ? F_ACCENT : F_MUTED, fontWeight: d.isToday ? 700 : 500 }}>
+                    {d.label}
+                  </Typography>
+                  <Box sx={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: d.isCompleted ? `${F_ACCENT}22` : d.isToday && isFastingActive ? `${F_ACCENT}11` : 'transparent',
+                    border: `1.5px solid ${d.isCompleted ? F_ACCENT : d.isToday ? F_MUTED : 'rgba(255,255,255,0.12)'}`,
+                  }}>
+                    {d.isCompleted
+                      ? <Flame size={13} color={F_ACCENT} />
+                      : d.isSkipped
+                        ? <Typography sx={{ fontSize: '11px', color: F_MUTED }}>✗</Typography>
+                        : d.isToday && isFastingActive
+                          ? <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: F_ACCENT }} />
+                          : !d.isScheduled
+                            ? <Typography sx={{ fontSize: '11px', color: F_MUTED }}>—</Typography>
+                            : null}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            <Button variant="text" size="small"
+              onClick={onCancelRecurringSchedule}
+              sx={{ mt: '12px', color: F_MUTED, fontSize: '12px', p: 0, minWidth: 0 }}
+            >
+              반복 중단
+            </Button>
+          </Box>
+        )}
+
+        {/* 주간 성취 달력 — 반복 설정 없을 때만 */}
+        {!hasRecurring && (
         <Box sx={{ bgcolor: F_BG, border: `1px solid ${F_BORDER}`, backdropFilter: 'blur(6px)', borderRadius: '16px', p: '20px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', mb: '16px' }}>
             <Flame size={16} color={F_ACCENT} />
@@ -909,6 +1157,8 @@ function HomeMode({
             ))}
           </Box>
         </Box>
+        )}
+
       </Box>
 
       {/* 빠른 시작 Drawer */}
@@ -982,7 +1232,7 @@ function HomeMode({
               </Box>
             )}
             <Button variant="contained" fullWidth size="large" disabled={!isPastHourValid || !isPastMinuteValid}
-              onClick={() => setQuickStep(3)} sx={{ borderRadius: '12px', mt: '24px' }}>다음</Button>
+              onClick={() => setQuickStep(3)} sx={{ borderRadius: '12px', mt: '24px', '&&': { height: '50px' } }}>다음</Button>
           </>
         )}
 
@@ -1011,7 +1261,7 @@ function HomeMode({
                 else if (pastChoice === 'pick' && pastStartDate) onStartFastingFromPast(config, pastStartDate);
                 closeQuick();
               }}
-              sx={{ borderRadius: '12px', mt: '24px' }}>
+              sx={{ borderRadius: '12px', mt: '24px', '&&': { height: '50px' } }}>
               단식 시작하기
             </Button>
           </>
@@ -1053,7 +1303,7 @@ function HomeMode({
               </FormControl>
             </Box>
             <Button variant="contained" fullWidth size="large" disabled={!isMealEndHourValid || !isMealEndMinuteValid}
-              onClick={() => setReserveStep(2)} sx={{ borderRadius: '12px', mt: '24px' }}>다음</Button>
+              onClick={() => setReserveStep(2)} sx={{ borderRadius: '12px', mt: '24px', '&&': { height: '50px' } }}>다음</Button>
           </>
         )}
 
@@ -1095,10 +1345,182 @@ function HomeMode({
             </InfoCard>
             <Button variant="contained" fullWidth size="large"
               onClick={() => { if (mealEndDate) onReserveFasting(reserveConfig, mealEndDate); closeReserve(); }}
-              sx={{ borderRadius: '12px', mt: '24px' }}>예약하기</Button>
+              sx={{ borderRadius: '12px', mt: '24px', '&&': { height: '50px' } }}>예약하기</Button>
           </>
         )}
       </Drawer>
+
+      {/* 반복 설정 Drawer */}
+      <Drawer anchor="bottom" open={recurringOpen} onClose={closeRecurring}
+        slotProps={{ paper: { sx: { borderRadius: '24px 24px 0 0', px: '24px', pt: '8px', pb: '40px', maxHeight: '92vh', overflowY: 'auto' } } }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: '16px' }}>
+          {recurringStep > 1
+            ? <IconButton size="small" onClick={() => setRecurringStep(s => s - 1)}><ArrowBackIosNewIcon fontSize="small" /></IconButton>
+            : <Box sx={{ width: 36 }} />}
+          <Typography sx={{ fontSize: '14px', fontWeight: 600, color: SUB_COLOR }}>{recurringStep} / 5</Typography>
+          <IconButton size="small" onClick={closeRecurring}><CloseIcon fontSize="small" /></IconButton>
+        </Box>
+
+        {/* Step 1: 패턴 선택 */}
+        {recurringStep === 1 && (
+          <>
+            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '4px' }}>어떤 패턴으로 단식할까요?</Typography>
+            <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '20px' }}>나에게 맞는 단식 루틴을 골라요</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px', mb: '24px' }}>
+              {PATTERN_INFO.map(p => (
+                <Box key={p.type} onClick={() => setRcPattern(p.type)}
+                  sx={{
+                    p: '16px', borderRadius: '12px', cursor: 'pointer',
+                    border: `2px solid ${rcPattern === p.type ? PRIMARY : 'rgba(0,0,0,0.1)'}`,
+                    bgcolor: rcPattern === p.type ? 'rgba(0,106,205,0.06)' : 'white',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}
+                >
+                  <Box>
+                    <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#000' }}>{p.type}</Typography>
+                    <Typography sx={{ fontSize: '13px', color: SUB_COLOR }}>{p.desc}</Typography>
+                  </Box>
+                  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: PRIMARY, bgcolor: 'rgba(0,106,205,0.1)', px: '8px', py: '4px', borderRadius: '8px' }}>
+                    {p.group}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+            <Button variant="contained" fullWidth size="large" onClick={() => setRecurringStep(2)} sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>다음</Button>
+          </>
+        )}
+
+        {/* Step 2: 요일 선택 */}
+        {recurringStep === 2 && (
+          <>
+            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '4px' }}>어떤 요일에 단식할까요?</Typography>
+            <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '20px' }}>쉬는 날에도 직접 시작할 수 있어요</Typography>
+            <Box sx={{ display: 'flex', gap: '6px', mb: '16px' }}>
+              {DAY_LABELS.map(({ dow, label }) => (
+                <Box key={dow} onClick={() => setRcDays(prev => prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow])}
+                  sx={{
+                    flex: 1, py: '12px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
+                    border: `2px solid ${rcDays.includes(dow) ? PRIMARY : 'rgba(0,0,0,0.1)'}`,
+                    bgcolor: rcDays.includes(dow) ? 'rgba(0,106,205,0.06)' : 'white',
+                  }}
+                >
+                  <Typography sx={{ fontSize: '13px', fontWeight: 700, color: rcDays.includes(dow) ? PRIMARY : SUB_COLOR }}>{label}</Typography>
+                </Box>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: '6px', mb: '24px' }}>
+              {[
+                { label: '매일', days: [0,1,2,3,4,5,6] as DayOfWeek[] },
+                { label: '평일', days: [1,2,3,4,5] as DayOfWeek[] },
+                { label: '주말', days: [0,6] as DayOfWeek[] },
+              ].map(({ label, days }) => (
+                <Button key={label} variant="outlined" size="small" onClick={() => setRcDays(days)}
+                  sx={{ borderRadius: '8px', borderColor: 'rgba(0,0,0,0.15)', color: SUB_COLOR, fontSize: '12px', flex: 1 }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </Box>
+            <Button variant="contained" fullWidth size="large" disabled={rcDays.length === 0} onClick={() => setRecurringStep(3)} sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>다음</Button>
+          </>
+        )}
+
+        {/* Step 3: 마지막 식사 시간 */}
+        {recurringStep === 3 && (
+          <>
+            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '4px' }}>보통 마지막 식사를 언제 마치나요?</Typography>
+            <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '24px' }}>이 시간이 지나면 단식이 시작돼요</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', mb: '24px' }}>
+              <FormControl>
+                <Select value={rcMealHour} onChange={e => setRcMealHour(e.target.value)}
+                  sx={{ width: 96, height: 56, textAlign: 'center', fontWeight: 700, fontSize: '1.25rem' }}
+                  MenuProps={{ PaperProps: { sx: { maxHeight: 200 } } }}
+                >
+                  {Array.from({ length: 24 }, (_, i) => i).map(i => { const l = i.toString().padStart(2, '0'); return <MenuItem key={i} value={l}>{l}시</MenuItem>; })}
+                </Select>
+              </FormControl>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#000' }}>:</Typography>
+              <FormControl>
+                <Select value={rcMealMinute} onChange={e => setRcMealMinute(e.target.value)}
+                  sx={{ width: 96, height: 56, textAlign: 'center', fontWeight: 700, fontSize: '1.25rem' }}
+                >
+                  {[0, 15, 30, 45].map(m => { const v = m.toString().padStart(2, '0'); return <MenuItem key={m} value={v}>{v}분</MenuItem>; })}
+                </Select>
+              </FormControl>
+            </Box>
+            <Button variant="contained" fullWidth size="large" onClick={() => setRecurringStep(4)} sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>다음</Button>
+          </>
+        )}
+
+        {/* Step 4: 알림 설정 */}
+        {recurringStep === 4 && (
+          <>
+            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '4px' }}>알림을 받을게요?</Typography>
+            <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '20px' }}>나중에 설정에서 변경할 수 있어요</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mb: '24px' }}>
+              {[
+                { label: '단식 시작 알림', desc: `${rcMealHour}시 ${rcMealMinute}분`, value: rcNotifStart, set: setRcNotifStart },
+                { label: '식사 가능 알림', desc: `${parseInt(rcMealHour) + FASTING_PRESETS[rcPattern].fastingHours}시간 후`, value: rcNotifEating, set: setRcNotifEating },
+                { label: '단식 중간 응원', desc: '단식 절반 지났을 때', value: rcNotifMid, set: setRcNotifMid },
+              ].map(item => (
+                <Box key={item.label} onClick={() => item.set(!item.value)}
+                  sx={{ p: '16px', borderRadius: '12px', border: `1.5px solid ${item.value ? PRIMARY : 'rgba(0,0,0,0.1)'}`, bgcolor: item.value ? 'rgba(0,106,205,0.06)' : 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <Box>
+                    <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#000' }}>{item.label}</Typography>
+                    <Typography sx={{ fontSize: '13px', color: SUB_COLOR }}>{item.desc}</Typography>
+                  </Box>
+                  <Box sx={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${item.value ? PRIMARY : 'rgba(0,0,0,0.15)'}`, bgcolor: item.value ? PRIMARY : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {item.value && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'white' }} />}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: '8px' }}>
+              <Button variant="outlined" size="large" fullWidth onClick={() => setRecurringStep(5)} sx={{ borderRadius: '12px', borderColor: 'rgba(0,0,0,0.15)', color: SUB_COLOR, '&&': { height: '50px' } }}>나중에 설정</Button>
+              <Button variant="contained" size="large" fullWidth onClick={() => setRecurringStep(5)} sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>다음</Button>
+            </Box>
+          </>
+        )}
+
+        {/* Step 5: 스케줄 확인 */}
+        {recurringStep === 5 && (
+          <>
+            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#000', mb: '4px' }}>이렇게 설정할게요!</Typography>
+            <Typography sx={{ fontSize: '14px', color: SUB_COLOR, mb: '20px' }}>언제든지 홈에서 반복 중단하거나 다시 설정할 수 있어요</Typography>
+            <Box sx={{ p: '20px', borderRadius: '16px', bgcolor: 'rgba(0,106,205,0.06)', border: `1.5px solid ${PRIMARY}33`, mb: '24px' }}>
+              <Typography sx={{ fontSize: '13px', fontWeight: 700, color: SUB_COLOR, mb: '12px' }}>반복 단식 스케줄</Typography>
+              {[
+                { label: '패턴', value: rcPattern },
+                { label: '요일', value: DAY_LABELS.filter(d => rcDays.includes(d.dow)).map(d => d.label).join(' ') },
+                { label: '단식 시작', value: `매일 ${rcMealHour}:${rcMealMinute}` },
+                { label: '식사 가능', value: `${parseInt(rcMealHour) + FASTING_PRESETS[rcPattern].fastingHours}시간 후` },
+              ].map(row => (
+                <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', mb: '10px' }}>
+                  <Typography sx={{ fontSize: '14px', color: SUB_COLOR }}>{row.label}</Typography>
+                  <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000' }}>{row.value}</Typography>
+                </Box>
+              ))}
+              <Box sx={{ borderTop: '1px solid rgba(0,0,0,0.08)', pt: '12px', mt: '4px' }}>
+                <Typography sx={{ fontSize: '13px', fontWeight: 600, color: SUB_COLOR, mb: '6px' }}>이번 주</Typography>
+                <Box sx={{ display: 'flex', gap: '6px' }}>
+                  {DAY_LABELS.map(({ dow, label }) => (
+                    <Box key={dow} sx={{ flex: 1, py: '6px', borderRadius: '8px', textAlign: 'center', bgcolor: rcDays.includes(dow) ? PRIMARY : 'rgba(0,0,0,0.06)' }}>
+                      <Typography sx={{ fontSize: '12px', fontWeight: 700, color: rcDays.includes(dow) ? 'white' : SUB_COLOR }}>{label}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: '8px' }}>
+              <Button variant="outlined" size="large" fullWidth onClick={() => setRecurringStep(1)} sx={{ borderRadius: '12px', borderColor: 'rgba(0,0,0,0.15)', color: SUB_COLOR, '&&': { height: '50px' } }}>다시 설정</Button>
+              <Button variant="contained" size="large" fullWidth onClick={handleSaveRecurring} sx={{ borderRadius: '12px', '&&': { height: '50px' } }}>시작하기</Button>
+            </Box>
+          </>
+        )}
+      </Drawer>
+
     </Box>
     </>
   );
@@ -1113,6 +1535,7 @@ export function HomeScreen({
   onStartFastingDirect, onStartFastingFromPast, onReserveFasting,
   onEndFasting, onResetToSetup, onUpdateStartTime,
   onUpdateReservedStart, onUpdateReservedConfig, getCurrentStage,
+  recurringSchedule, skippedDates, onSetRecurringSchedule, onCancelRecurringSchedule, onSkipToday,
 }: HomeScreenProps) {
   const isFasting = currentPhase === 'fasting' && !!currentSession;
   const bgImage = FASTING_BGS[Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % FASTING_BGS.length];
@@ -1168,7 +1591,7 @@ export function HomeScreen({
       >
         {/* 페이지 0: 홈 */}
         <Box sx={{
-          width: '100vw', flexShrink: 0,
+          width: '100%', flexShrink: 0,
           scrollSnapAlign: 'start',
           overflowY: 'auto', height: '100%',
         }}>
@@ -1186,13 +1609,18 @@ export function HomeScreen({
             onUpdateReservedStart={onUpdateReservedStart}
             onUpdateReservedConfig={onUpdateReservedConfig}
             onGoToFasting={goToFasting}
+            recurringSchedule={recurringSchedule}
+            skippedDates={skippedDates}
+            onSetRecurringSchedule={onSetRecurringSchedule}
+            onCancelRecurringSchedule={onCancelRecurringSchedule}
+            onSkipToday={onSkipToday}
           />
         </Box>
 
         {/* 페이지 1: 단식 */}
         {isFasting && currentSession && (
           <Box sx={{
-            width: '100vw', flexShrink: 0,
+            width: '100%', flexShrink: 0,
             scrollSnapAlign: 'start',
             overflowY: 'auto', height: '100%',
           }}>
